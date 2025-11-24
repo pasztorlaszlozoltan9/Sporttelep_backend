@@ -1,6 +1,4 @@
 
 /node_modules
 /access.log
-/.env
-/database.sqlite
 
