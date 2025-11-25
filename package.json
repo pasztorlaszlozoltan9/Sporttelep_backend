@@ -19,7 +19,7 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv-flow": "^4.1.0",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
     "generate-api-key": "^1.0.2",
     "jsonwebtoken": "^9.0.0",
     "mariadb": "^3.1.2",
