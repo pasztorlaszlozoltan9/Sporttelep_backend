@@ -1,0 +1,76 @@
+2025-09-03
+Backend fejlesztés
+
+-----------------
+
+Ismétlés
+
+node app/index.js
+
+node app
+
+elso/
+
+terminál:
+- npm init -y
+- package.json -> type: module!
+- npm install express
+- node app
+
+npm install --global resen
+res --version
+
+res localhost:8000/msg
+Insomnia
+
+//insomnia rest api client
+
+_JSON válasz_
+
+"cica" helyett
+
+{
+	"message": "cica"
+}
+
+Router:
+terminál:
+- npm init -y
+- package.json -> type: module!
+- npm install express
+- node app
+
+
+a router használata miatt:
+
+import express from 'express';
+import Router from 'express';
+
+const app = express();
+const router = Router();
+
+const products = [
+    { id: 1, name: 'CD-ROM', price: 34 }
+];
+
+
+/* A routingot most a router objektumon
+   állítjuk be.
+*/
+router.get('/products', (req, res) => {
+    res.send(products);
+});
+
+/* Első paraméterként megadunk egy 
+   alap útvonalt a /api 
+   A második paraméterben mondjuk meg, 
+   hogy a router objektumot szeretnénk 
+   használni.
+*/
+app.use('/api', router);
+
+app.listen(8000, () => {
+    console.log('listening on port: 8000');
+});
+
+- res http://localhost:8000/api/products

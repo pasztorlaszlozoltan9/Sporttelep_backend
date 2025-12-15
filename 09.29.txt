@@ -1,0 +1,141 @@
+09.29.txt
+
+2025-09-29
+Backend
+-------------------
+2025-09-15
+Kontrollerek
+
+mkdir empapi
+cd empapi
+npm init -y
+
+
+empapi/
+	|-app/
+	|	|-controllers/
+	|	|	'-employeeController.js
+	|	|-routes/
+	|	|	'-api.js
+	|	'-index.js
+	|-package-lock.json
+	'-package.json
+
+npm install express
+npm install --save-dev nodemon
+
+---------------------
+git clone https://github.com/oktat/empapi_elso.git
+
+
+Adat fogadása kontrollerben
+
+npm install
+
+npm install morgan
+
+Index.js:
+import express from 'express';
+import morgan from 'morgan';
+import router from './routes/api.js';
+
+const app = express();
+
+app.use(morgan('tiny'));
+app.use(express.json());
+app.use('/api', router);
+
+app.listen(8000, () => {
+    console.log('port: 8000');
+});
+
+npm run dev-
+
+npm install --global resen
+
+res post :8000/api/employees
+res post :8000/api/employees name=Bálint
+res post :8000/api/employees name="kiss Bálint"
+res post :8000/api/employees name="kiss Bálint" city=Szolnok
+
+Változtatás
+store: (req, res) => {
+        res.status(201);
+        res.json({
+          msg: req.body
+        });
+
+res post :8000/api/employees name="kiss Bálint" city=Szolnok
+EREDMÉNY
+{
+	"msg": {
+		"name": "Kiss Bálint",
+		"city": Szolnok
+	}
+}
+
+Változtatás
+store: (req, res) => {
+        res.status(201);
+        res.json({
+          msg: req.body.city /req.body.name
+        });
+
+Változtatás
+    store: (req, res) => {
+        res.status(201);
+        res.json({
+          name: req.body.name,
+          city: req.body.city
+        });
+    },
+
+adat.txt létrehozása:
+{
+    "name": "Posta Irén",
+    "city": Szolnok,
+    "salary": 450
+}
+
+rest POST :8000/api/employees < adat.txt 
+
+{
+    "name": "Posta Irén",
+    "city": "Szolnok",
+}
+
+-------------------
+Adatellenörzés
+store: (req, res) => {
+        if(!req.body.name){
+            res.status(400)
+            res.json({
+                error: "Hiba/ Név megadás kötelező!"
+            })
+        }
+res post :8000/api/employees  city=Szolnok --> Error
+
+store: (req, res) => {
+        if(!req.body.name ||!req.body.city){
+            res.status(400)
+            res.json({
+                error: "Hiba/ Név és város megadás kötelező!"
+            })
+        }
+ ------------------
+ Paraméterek fogadása
+ 
+ 
+router.delete("/employees/:employeeId/:projectId", EmployeeController.destroy);
+
+
+Beállítások tárolása
+
+import { readFileSync } from 'fs'
+const fileUrl = new URL('config.json', import.meta.url)
+const config = JSON.parse(readFileSync(fileUrl, 'utf-8'))
+
+//...
+app.listen(config.app.port, () => {
+    console.log(`Port: ${config.app.port}`)
+})

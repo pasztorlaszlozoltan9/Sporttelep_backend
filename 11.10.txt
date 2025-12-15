@@ -1,0 +1,86 @@
+Backend
+
+2025-11-10
+------------------
+
+npm create sip@latest  //új projekt létrehozás
+
+empkesz					//tervezett projekt neve
+
+express api
+
+Id kell a show, update, destroy parancsokhoz
+
+router.get('/employees', EmployeeController.index)
+router.get('/employees/:id', EmployeeController.show) 
+router.post('/employees', EmployeeController.store)
+router.put('/employees/:id', EmployeeController.update)
+router.delete('/employees/:id', EmployeeController.destroy)
+
+npm install --global resen
+res localhost:8000/api/employees
+
+Új adat felvétele
+res post :8000/api/employees name="Pásztor László" city=Szeged salary=395.8
+
+Adat törlése
+res delete :8000/api/employees/4
+
+Adat javítása
+res put :8000/api/employees/3 name="Szakadt Ilona" city=Pécs salary=312.2
+
+Egy adat lekérése
+res localhost:8000/api/employees/3
+
+Insomnia	felhő
+Insomnium	nincs felhő--saját gépre
+Create new project
+Create request collection
+Create new folder //minden végponthoz kell egy
+	| create new http request: http://localhost:8000/api/employees
+		| get - http://localhost:8000/api/employees
+		| post - {	"name": "Boldog István",	"city": "Győr",	"salary": 245.5}
+		| put - http://localhost:8000/api/employees/4 
+			| {	"name": "Szomorú István",	"city": "Sopron",	"salary": 275.5}
+		| delete - http://localhost:8000/api/employees/4  
+
+
+node op make:model rank
+node op make:controller rank
+
+router.get('/ranks', RankController.index)
+router.get('/ranks/:id', RankController.show) 
+router.post('/ranks', RankController.store)
+router.put('/ranks/:id', RankController.update)
+router.delete('/ranks/:id', RankController.destroy)
+
+
+Insomnia
+Create new folder //minden végponthoz kell egy
+	| create new http request: http://localhost:8000/api/ranks
+		| get - http://localhost:8000/api/employees
+		| post - {	"name": "Fejlesztő"}
+		| put - http://localhost:8000/api/ranks/2
+			| {	"name": "Vezető"}
+		| delete - http://localhost:8000/api/ranks/3
+
+Táblák összekapcsolása
+ - egy a többhöz kapcsolás
+ 
+app/models/modrels.js
+	| db.Employee.belongsTo(db.Rank)
+	| db.Rank.hasMany(db.Employee)
+	| db.Employee = Employee;
+	| db.Rank = Rank;
+
+
+database.sqlite
+ - kézzel hozzáadni a rankId-t
+
+
+Terv készítés adatbázishoz, példa:
+https://github.com/oktat/tan/blob/master/backend/images/relations_db.png
+
+
+
+

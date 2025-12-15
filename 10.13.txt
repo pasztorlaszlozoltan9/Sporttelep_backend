@@ -1,0 +1,160 @@
+2025-10-13
+
+--------------
+
+Dolgozat:
+	2025-10-20
+	otthon megoldandó (1 hét van elvégezni)
+	backend
+	
+Példa:
+https://szit.hu/doku.php?id=oktatas:web:feladatok:backend
+
+Feladat 001:
+
+npm init -y
+"type": "module"
+npm install express
+
+App könyvtár készítés
+
+(nodemon telepítés - npm install --save-dev nodemon)
+
+"scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon app --watch app", --beírni--
+    "start": "node app" --beírni--
+  },
+
+app/
+	| router/
+			| api.js
+	| controller/
+			| patientController.js
+			| treatmentController.js
+	index.js
+	
+
+npm run dev = elindul az app
+
+------------ index.js (teljes kód):
+
+import express from 'express'
+import router from './routes/api.js'
+
+const app = express()
+
+//routing
+app.use('/api', router)
+
+
+const PORT = 8000
+app.listen(PORT, () => {
+    console.log(`Listening on port ${PORT}`)
+})
+
+------------ api.js (teljes kód):
+
+import Router from 'express'
+import PatientController from '../controllers/patientController.js'
+import TreatmentController from '../controllers/treamentController.js'
+
+const router = Router()
+
+//routing
+
+router.get('/patients', PatientController.index)
+router.post('/patients', PatientController.store)
+router.put('/patients', PatientController.update)
+router.delete('/patients', PatientController.destroy)
+
+router.get('/treatments', TreatmentController.index)
+router.post('/treatments', TreatmentController.store)
+router.put('/treatments', TreatmentController.update)
+router.delete('/treatments', TreatmentController.destroy)
+
+export default router
+
+------------ patientController.js (teljes kód):
+
+const PatientController ={
+    index: (req, res) => {
+        res.json({
+            crud: "read",
+            method: "get",
+            name: "Pásztor László, II/E, 2025-10-13",
+            success: true
+        })
+    },
+    store: (req, res) => {
+        res.json({
+            crud: "create",
+            method: "post",
+            name: "Pásztor László, II/E, 2025-10-13",
+            success: true
+        })
+    },
+    update: (req, res) => {
+        res.json({
+            crud: "update",
+            method: "update",
+            name: "Pásztor László, II/E, 2025-10-13",
+            success: true
+        })
+    },
+    destroy: (req, res) => {
+        res.json({
+            crud: "delete",
+            method: "delete",
+            name: "Pásztor László, II/E, 2025-10-13",
+            success: true
+        })
+    }
+}
+
+export default PatientController
+
+------------ treatmentController.js (teljes kód):
+
+const TreatmentController ={
+    index: (req, res) => {
+        res.json({
+            crud: "read",
+            method: "get",
+            name: "Pásztor László, II/E, 2025-10-13",
+            success: true
+        })
+    },
+    store: (req, res) => {
+        res.json({
+            crud: "create",
+            method: "post",
+            name: "Pásztor László, II/E, 2025-10-13",
+            success: true
+        })
+    },
+    update: (req, res) => {
+        res.json({
+            crud: "update",
+            method: "update",
+            name: "Pásztor László, II/E, 2025-10-13",
+            success: true
+        })
+    },
+    destroy: (req, res) => {
+        res.json({
+            crud: "delete",
+            method: "delete",
+            name: "Pásztor László, II/E, 2025-10-13",
+            success: true
+        })
+    }
+}
+
+export default TreatmentController
+
+
+
+
+
+

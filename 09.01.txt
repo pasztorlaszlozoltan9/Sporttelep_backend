@@ -1,0 +1,12 @@
+2025-09-01
+
+Backend programozás
+--------------------
+
+Node.js Express
+
+github.com/oktat/tan
+
+https://github.com/oktat/tan/tree/master/backend
+https://szit.hu/doku.php?id=oktatas:programozas:humer:tervezes
+
