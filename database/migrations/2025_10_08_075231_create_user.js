@@ -20,6 +20,14 @@ async function up({context: QueryInterface}) {
       type: DataTypes.STRING,
       allowNull: false
     },
+    phone: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    fullname:{
+      type: DataTypes.STRING,
+      allowNull: false
+    },
     roleId: {
       type: DataTypes.INTEGER,
       defaultValue: 0

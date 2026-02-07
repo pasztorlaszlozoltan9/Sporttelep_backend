@@ -33,6 +33,7 @@ const AuthController = {
             }else {
                 res.status(500)
             }            
+
             await res.json({
                 success: false,
                 message: 'Error! User creation failed!',
@@ -44,7 +45,9 @@ const AuthController = {
         const user = {
             name: req.body.name,
             email: req.body.email,
-            password: bcrypt.hashSync(req.body.password)
+            password: bcrypt.hashSync(req.body.password),
+            phone: req.body.phone,
+            fullname: req.body.fullname
         }
         const result = await User.create(user)
         
