@@ -1,6 +1,6 @@
 import { DataTypes } from 'sequelize'
 import sequelize from '../database/database.js'
-import { identityOrigin } from 'firebase-tools/lib/api.js'
+// import { identityOrigin } from 'firebase-tools/lib/api.js'
 
 const SportLoc = sequelize.define('sportLocs', {
     sportsId: {

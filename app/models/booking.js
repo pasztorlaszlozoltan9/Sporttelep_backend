@@ -1,6 +1,5 @@
 import { DataTypes } from 'sequelize'
 import sequelize from '../database/database.js'
-import Prices from './prices.js'
 
 const Booking = sequelize.define('bookings', {
     sportsId: {
