@@ -60,7 +60,7 @@ const AuthController = {
     async login(req, res) {
         
         try {
-            if(!req.body.name || !req.body.password) {
+            if(!req.body.name || !req.body.password ) {
                res.status(400)
                throw new Error('Error! Bad name or password!')
             }

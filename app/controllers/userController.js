@@ -5,7 +5,7 @@ const UserController = {
     async index(req, res) {
         try {
             UserController.tryIndex(req, res)
-        }catch(error) {
+        } catch (error) {
             res.status(500)
             res.json({
                 success: false,
@@ -24,7 +24,7 @@ const UserController = {
     async show(req, res) {
         try {
             await UserController.tryShow(req, res)
-        }catch(error) {
+        } catch (error) {
             res.status(500)
             res.json({
                 success: false,
@@ -43,29 +43,29 @@ const UserController = {
     async create(req, res) {
         var clientError = false;
         try {
-            if(!req.body.name ||
+            if (!req.body.name ||
                 !req.body.email ||
                 !req.body.password ||
                 !req.body.password_confirmation) {
                 clientError = true
                 throw new Error('Error! Bad request data!')
             }
-            if(req.body.password != req.body.password_confirmation) {
+            if (req.body.password != req.body.password_confirmation) {
                 clientError = true
                 throw new Error('Error! The two password is not same!')
             }
             const user = await User.findOne({
                 where: { name: req.body.name }
             })
-            if(user) {
+            if (user) {
                 clientError = true
                 throw new Error('Error! User already exists: ' + user.name)
-            }            
+            }
             await UserController.tryCreate(req, res)
-        }catch(error) {
+        } catch (error) {
             if (clientError) {
                 res.status(400)
-            }else {
+            } else {
                 res.status(500)
             }
             res.json({
@@ -80,7 +80,7 @@ const UserController = {
             name: req.body.name,
             email: req.body.email,
             password: bcrypt.hashSync(req.body.password)
-        }        
+        }
         const userData = await User.create(newUser)
         res.status(201)
         res.json({
@@ -88,23 +88,65 @@ const UserController = {
             data: userData
         })
     },
-    async updatePassword(req, res) {
+    async update(req, res) {
         var clientError = false;
         try {
-            if(!req.body.password ||
-                !req.body.password_confirmation) {
+            if (!req.body.name ||
+                !req.body.email ||
+                !req.body.password ||
+                !req.body.phone ||
+                !req.body.fullname ||
+                !req.body.roleId) {
                 clientError = true
                 throw new Error('Error! Bad request data!')
             }
-            if(req.body.password != req.body.password_confirmation) {
+            await UserController.tryUpdate(req, res)
+        } catch (error) {
+            if (clientError) {
+                res.status(400)
+            } else {
+                res.status(500)
+            }
+            res.json({
+                success: false,
+                message: 'Error! The query is failed!',
+                error: error.message
+            })
+        }
+    },
+    async tryUpdate(req, res) {
+        const user = await User.findByPk(req.params.id)
+        user.name = req.body.name
+        user.email = req.body.email
+        user.password = bcrypt.hashSync(req.body.password)
+        user.phone = req.body.phone
+        user.fullname = req.body.fullname
+        user.roleId = req.body.roleId
+        await user.save()
+        res.status(200)
+        res.json({
+            success: true,
+            data: user
+        })
+    },
+
+    async updatePassword(req, res) {
+        var clientError = false;
+        try {
+            if (!req.body.password ||
+                !req.body.password_confirmation) {
+                clientError = true
+                throw new Error('Error! Bad request data!')
+            } 
+            if (req.body.password != req.body.password_confirmation) {
                 clientError = true
                 throw new Error('Error! The two password is not same!')
             }
             await UserController.tryUpdatePassword(req, res)
-        }catch(error) {
+        } catch (error) {
             if (clientError) {
                 res.status(400)
-            }else {
+            } else {
                 res.status(500)
             }
             res.json({
@@ -122,6 +164,27 @@ const UserController = {
         res.json({
             success: true,
             data: user
+        })
+    },
+
+    async destroy(req, res) {
+        try {
+            await UserController.tryDestroy(req, res)
+        } catch (error) {
+            res.status(500)
+            res.json({
+                success: false,
+                message: 'Error! The query is failed!'
+            })
+        }
+    },
+    async tryDestroy(req, res) {
+        const user = await User.findByPk(req.params.id)
+        await user.destroy()
+        res.status(200)
+        res.json({
+            success: true,
+            message: 'User is deleted successfully!'
         })
     }
 }
