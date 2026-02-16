@@ -9,10 +9,10 @@ async function up({context: QueryInterface}) {
       type: DataTypes.INTEGER
     },
     price: { type: DataTypes.INTEGER,  allowNull: false  },
-    sportLocId: {
+    fieldsId: {
       type: DataTypes.INTEGER,
       references: {
-          model: 'sportLocs',
+          model: 'fields',
           key: 'id'
       },
       onUpdate: 'CASCADE',

@@ -5,7 +5,6 @@ import Sport from './sport.js';
 import Field from './field.js';
 import AvailableDate from './availableDate.js';
 import Booking from './booking.js';
-import SportLoc from './sportLoc.js';
 import Teszt from './teszt.js';
 import Prices from './prices.js';
 
@@ -19,7 +18,6 @@ db.Sport = Sport;
 db.Field = Field;
 db.AvailableDate = AvailableDate;
 db.Booking = Booking;
-db.SportLoc = SportLoc;
 db.Teszt = Teszt;
 db.Booking = Booking;
 db.Prices = Prices;

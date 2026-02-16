@@ -9,7 +9,6 @@ import SportController from '../controllers/sportController.js';
 import FieldController from '../controllers/fieldController.js';
 import AvailableDateController from '../controllers/availableDateController.js';
 import BookingController from '../controllers/bookingController.js';
-import SportLocController from '../controllers/sportLocController.js';
 import TesztController from '../controllers/tesztController.js';
 import PricesController from '../controllers/pricesController.js';
  
@@ -50,12 +49,6 @@ router.get('/bookings/:id', BookingController.show);
 router.post('/bookings', BookingController.store);
 router.put('/bookings/:id', BookingController.update);
 router.delete('/bookings/:id', BookingController.destroy);
-
-router.get('/sportlocs', SportLocController.index);
-router.get('/sportlocs/:id', SportLocController.show);
-router.post('/sportlocs', SportLocController.store);
-router.put('/sportlocs/:id', SportLocController.update);
-router.delete('/sportlocs/:id', SportLocController.destroy);
 
 router.get('/teszts', TesztController.index);
 router.get('/teszts/:id', TesztController.show);
