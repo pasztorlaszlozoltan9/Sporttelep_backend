@@ -8,7 +8,7 @@ async function up({context: QueryInterface}) {
       primaryKey: true,
       type: DataTypes.INTEGER
     },
-    sportsId: {
+    sportId: {
       type: DataTypes.INTEGER,
       references: {
         model: 'sports',
@@ -17,7 +17,7 @@ async function up({context: QueryInterface}) {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
-    locationsId: {
+    locationId: {
       type: DataTypes.INTEGER,
       references: {
         model: 'locations',
@@ -26,7 +26,7 @@ async function up({context: QueryInterface}) {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
-    fieldsId:{
+    fieldId:{
       type: DataTypes.INTEGER,
       references: {
         model: 'fields',
@@ -35,7 +35,7 @@ async function up({context: QueryInterface}) {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
-    usersId:{
+    userId:{
       type: DataTypes.INTEGER,
       references: {
         model: 'users',
@@ -44,7 +44,7 @@ async function up({context: QueryInterface}) {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
-    availablaDatesId:{
+    availableDateId:{
       type: DataTypes.INTEGER,
       references: {
         model: 'availableDates',
@@ -53,7 +53,7 @@ async function up({context: QueryInterface}) {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
-    pricesId:{
+    priceId:{
       type: DataTypes.INTEGER,
       references: {
         model: 'prices',

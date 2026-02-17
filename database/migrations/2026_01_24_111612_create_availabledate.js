@@ -14,7 +14,7 @@ async function up({context: QueryInterface}) {
     startTime: {
       type: DataTypes.TIME
     },
-    fieldsId: {
+    fieldId: {
       type: DataTypes.INTEGER,
       references: {
         model: 'fields',

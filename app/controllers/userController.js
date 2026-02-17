@@ -43,8 +43,7 @@ const UserController = {
     async create(req, res) {
         var clientError = false;
         try {
-            if (!req.body.name ||
-                !req.body.email ||
+            if (!req.body.email ||
                 !req.body.password ||
                 !req.body.password_confirmation) {
                 clientError = true
@@ -77,7 +76,6 @@ const UserController = {
     },
     async tryCreate(req, res) {
         const newUser = {
-            name: req.body.name,
             email: req.body.email,
             password: bcrypt.hashSync(req.body.password)
         }
@@ -91,12 +89,11 @@ const UserController = {
     async update(req, res) {
         var clientError = false;
         try {
-            if (!req.body.name ||
-                !req.body.email ||
+            if (!req.body.email ||
                 !req.body.password ||
                 !req.body.phone ||
                 !req.body.fullname ||
-                !req.body.roleId) {
+                req.body.roleId === undefined) {
                 clientError = true
                 throw new Error('Error! Bad request data!')
             }
@@ -116,7 +113,6 @@ const UserController = {
     },
     async tryUpdate(req, res) {
         const user = await User.findByPk(req.params.id)
-        user.name = req.body.name
         user.email = req.body.email
         user.password = bcrypt.hashSync(req.body.password)
         user.phone = req.body.phone

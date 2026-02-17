@@ -2,7 +2,7 @@ import { DataTypes } from 'sequelize'
 import sequelize from '../database/database.js'
 
 const Booking = sequelize.define('bookings', {
-    sportsId: {
+    sportId: {
         type: DataTypes.INTEGER,
         references: {
             model: 'sports',
@@ -11,7 +11,7 @@ const Booking = sequelize.define('bookings', {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
     },
-    locationsId: {
+    locationId: {
         type: DataTypes.INTEGER,
         references: {
             model: 'locations',
@@ -20,7 +20,7 @@ const Booking = sequelize.define('bookings', {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
     },
-    fieldsId:{
+    fieldId:{
         type: DataTypes.INTEGER,
         references: {
             model: 'fields',
@@ -29,7 +29,7 @@ const Booking = sequelize.define('bookings', {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
     },
-    usersId:{
+    userId:{
         type: DataTypes.INTEGER,
         references: {
             model: 'users',
@@ -38,7 +38,7 @@ const Booking = sequelize.define('bookings', {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
     },
-    availablaDatesId:{
+    availableDateId:{
         type: DataTypes.INTEGER,
         references: {
             model: 'availableDates',
@@ -47,7 +47,7 @@ const Booking = sequelize.define('bookings', {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
     },
-    pricesId:{
+    priceId:{
         type: DataTypes.INTEGER,
         references: {
             model: 'prices',

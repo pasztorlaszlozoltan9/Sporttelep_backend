@@ -8,8 +8,7 @@ const AuthController = {
     async register(req, res) {        
         var clientError = false;
         try {
-            if(!req.body.name ||
-                !req.body.email ||
+            if(!req.body.email ||
                 !req.body.password ||
                 !req.body.password_confirmation) {
                 clientError = true
@@ -20,11 +19,11 @@ const AuthController = {
                 throw new Error('Error! The two password is not same!')
             }
             const user = await User.findOne({
-                where: { name: req.body.name }
+                where: { email: req.body.email }
             })
             if(user) {
                 clientError = true
-                throw new Error('Error! User already exists: ' + user.name)
+                throw new Error('Error! User already exists: ' + user.email)
             }
             AuthController.tryRegister(req, res)
         } catch (error) {
@@ -43,7 +42,6 @@ const AuthController = {
     },
     async tryRegister(req, res) {
         const user = {
-            name: req.body.name,
             email: req.body.email,
             password: bcrypt.hashSync(req.body.password),
             phone: req.body.phone,
@@ -60,12 +58,12 @@ const AuthController = {
     async login(req, res) {
         
         try {
-            if(!req.body.name || !req.body.password ) {
+            if(!req.body.email || !req.body.password ) {
                res.status(400)
-               throw new Error('Error! Bad name or password!')
+               throw new Error('Error! Bad email or password!')
             }
             const user = await User.findOne({
-                where: { name: req.body.name }
+                where: { email: req.body.email }
             })
 
             if(!user) {
@@ -96,7 +94,6 @@ const AuthController = {
         })
         res.status(200).json({
             id: user.id,
-            name: user.name,
             email: user.email,
             accessToken: token
         })            

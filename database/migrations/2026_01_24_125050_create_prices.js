@@ -9,7 +9,7 @@ async function up({context: QueryInterface}) {
       type: DataTypes.INTEGER
     },
     price: { type: DataTypes.INTEGER,  allowNull: false  },
-    fieldsId: {
+    fieldId: {
       type: DataTypes.INTEGER,
       references: {
           model: 'fields',

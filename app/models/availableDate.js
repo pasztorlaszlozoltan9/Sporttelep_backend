@@ -8,7 +8,7 @@ const AvailableDate = sequelize.define('availableDates', {
     startTime: {
       type: DataTypes.TIME
     },
-    fieldsId: {
+    fieldId: {
       type: DataTypes.INTEGER,
       references: {
         model: 'fields',
