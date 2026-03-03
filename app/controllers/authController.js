@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../models/user.js'
 import dotenvFlow from 'dotenv-flow'
+import sendEmail from '../services/email_service.js'
+
 dotenvFlow.config() 
 
 const AuthController = {
@@ -49,6 +51,12 @@ const AuthController = {
         }
         const result = await User.create(user)
         
+        sendEmail({
+            email: req.body.email,
+            subject: 'Üdvözlet!',
+            html: 'Köszönjük a regisztrációt'
+        })
+
         res.status(201).json({
             succes: true,
             data: result
@@ -58,6 +66,7 @@ const AuthController = {
     async login(req, res) {
         
         try {
+            console.log('Login attempt: ' + req.body.email);
             if(!req.body.email || !req.body.password ) {
                res.status(400)
                throw new Error('Error! Bad email or password!')
