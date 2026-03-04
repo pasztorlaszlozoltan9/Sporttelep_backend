@@ -13,6 +13,7 @@ import TesztController from '../controllers/tesztController.js';
 import PricesController from '../controllers/pricesController.js';
  
 router.post('/register', AuthController.register)
+router.get('/verify-email/:token', AuthController.verifyEmail)
 router.post('/login', AuthController.login)
 router.get('/users', [verifyToken], UserController.index)
 router.get('/users/:id', [verifyToken], UserController.show)

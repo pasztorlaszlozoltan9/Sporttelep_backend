@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import User from '../models/user.js'
 import dotenvFlow from 'dotenv-flow'
 import sendEmail from '../services/email_service.js'
+import crypto from 'crypto'
 
 dotenvFlow.config() 
 
@@ -43,18 +44,24 @@ const AuthController = {
         }
     },
     async tryRegister(req, res) {
+        const verificationToken = crypto.randomBytes(32).toString('hex')
+        const verifyUrl = process.env.APP_URL + '/verify-email/' + verificationToken
+
         const user = {
             email: req.body.email,
             password: bcrypt.hashSync(req.body.password),
             phone: req.body.phone,
-            fullname: req.body.fullname
+            fullname: req.body.fullname,
+            verificationToken: verificationToken
         }
         const result = await User.create(user)
         
         sendEmail({
             email: req.body.email,
-            subject: 'Üdvözlet!',
-            html: 'Köszönjük a regisztrációt'
+            subject: 'Regisztráció',
+            html: `Regisztráció megerősítése:<br>
+            ${verifyUrl}
+            `
         })
 
         res.status(201).json({
@@ -106,7 +113,26 @@ const AuthController = {
             email: user.email,
             accessToken: token
         })            
+    },
+
+    async verifyEmail(req, res) {
+        const user = await User.findOne({
+            where: { verificationToken: req.params.token }
+        })
+        if(!user) {
+            res.status(404)
+            throw new Error('Error! User not found!')
+        }
+        user.verified = true
+        await user.save()
+        
+        res.status(200).json({
+            success: true,
+            message: 'The email is verified!',
+
+        })
     }
+
 }
  
 export default AuthController

@@ -6,7 +6,9 @@ const User = sequelize.define('user', {
     password: { type: DataTypes.STRING , allowNull: false },
     phone: {type: DataTypes.NUMBER, allowNull: false,},
     fullname: {type: DataTypes.STRING, allowNull: false,},
-    roleId: { type: DataTypes.INTEGER, defaultValue: 0 }
+    roleId: { type: DataTypes.INTEGER, defaultValue: 0 },
+    verificationToken: { type: DataTypes.STRING, allowNull: true },
+    verified: { type: DataTypes.BOOLEAN, defaultValue: false },
 })
 
 export default User
