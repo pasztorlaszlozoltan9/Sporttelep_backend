@@ -4,8 +4,17 @@ import User from '../models/user.js'
 import dotenvFlow from 'dotenv-flow'
 import sendEmail from '../services/email_service.js'
 import crypto from 'crypto'
+import { OAuth2Client } from 'google-auth-library'
 
 dotenvFlow.config() 
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+const normalizePhone = (value) => {
+    if (value === undefined || value === null) return null
+    const phone = String(value).trim()
+    return phone.length > 0 ? phone : null
+}
 
 const AuthController = {
     async register(req, res) {        
@@ -28,7 +37,7 @@ const AuthController = {
                 clientError = true
                 throw new Error('Error! User already exists: ' + user.email)
             }
-            AuthController.tryRegister(req, res)
+            await AuthController.tryRegister(req, res)
         } catch (error) {
             if (clientError) {
                 res.status(400)
@@ -55,18 +64,25 @@ const AuthController = {
             verificationToken: verificationToken
         }
         const result = await User.create(user)
-        
-        sendEmail({
-            email: req.body.email,
-            subject: 'Regisztráció',
-            html: `Regisztráció megerősítése:<br>
-            ${verifyUrl}
-            `
-        })
+
+        let emailWarning = null
+        try {
+            await sendEmail({
+                email: req.body.email,
+                subject: 'Regisztráció',
+                html: `Regisztráció megerősítése:<br>
+                ${verifyUrl}
+                `
+            })
+        } catch (error) {
+            emailWarning = 'User created, but verification email could not be sent.'
+            console.error('Email sending failed during registration:', error.message)
+        }
 
         res.status(201).json({
             succes: true,
-            data: result
+            data: result,
+            emailWarning
         })
         
     },
@@ -100,6 +116,89 @@ const AuthController = {
             res.json({
                 success: false,
                 message: 'Error! The login is failed!',
+                error: error.message
+            })
+        }
+    },
+    async googleSignIn(req, res) {
+        try {
+            const idToken = req.body.idToken || req.body.credential
+            if (!idToken) {
+                res.status(400)
+                throw new Error('Error! Missing Google ID token!')
+            }
+
+            if (!process.env.GOOGLE_CLIENT_ID) {
+                res.status(500)
+                throw new Error('Error! GOOGLE_CLIENT_ID is not configured on the backend!')
+            }
+
+            const ticket = await googleClient.verifyIdToken({
+                idToken,
+                audience: process.env.GOOGLE_CLIENT_ID
+            })
+            const payload = ticket.getPayload()
+
+            if (!payload || !payload.email) {
+                res.status(401)
+                throw new Error('Error! Invalid Google token payload!')
+            }
+
+            if (!payload.email_verified) {
+                res.status(401)
+                throw new Error('Error! Google account email is not verified!')
+            }
+
+            const email = String(payload.email).toLowerCase().trim()
+            const fullname = payload.name || req.body.fullname || email.split('@')[0]
+            const phone = normalizePhone(
+                req.body.phone ||
+                req.body.phoneNumber ||
+                req.body?.user?.phone ||
+                payload.phone_number
+            ) || '0'
+
+            let user = await User.findOne({ where: { email } })
+
+            if (!user) {
+                user = await User.create({
+                    email,
+                    fullname,
+                    phone,
+                    password: bcrypt.hashSync(crypto.randomBytes(32).toString('hex')),
+                    verified: true,
+                    verificationToken: null
+                })
+            } else {
+                let shouldSave = false
+                const existingPhone = normalizePhone(user.phone)
+                const incomingPhone = normalizePhone(phone)
+
+                if (!user.verified) {
+                    user.verified = true
+                    user.verificationToken = null
+                    shouldSave = true
+                }
+
+                if (incomingPhone && (existingPhone === null || existingPhone === '0')) {
+                    user.phone = incomingPhone
+                    shouldSave = true
+                }
+
+                if (shouldSave) {
+                    await user.save()
+                }
+            }
+
+            return AuthController.tryLogin(req, res, user)
+        } catch (error) {
+            if (!res.statusCode || res.statusCode < 400) {
+                res.status(500)
+            }
+
+            return res.json({
+                success: false,
+                message: 'Error! Google sign-in failed!',
                 error: error.message
             })
         }

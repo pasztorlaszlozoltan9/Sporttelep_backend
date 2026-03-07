@@ -15,6 +15,7 @@ import PricesController from '../controllers/pricesController.js';
 router.post('/register', AuthController.register)
 router.get('/verify-email/:token', AuthController.verifyEmail)
 router.post('/login', AuthController.login)
+router.post('/google-signin', AuthController.googleSignIn)
 router.get('/users', [verifyToken], UserController.index)
 router.get('/users/:id', [verifyToken], UserController.show)
 router.put('/users/:id', [verifyToken], UserController.update)

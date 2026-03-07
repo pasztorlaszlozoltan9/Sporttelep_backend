@@ -54,11 +54,11 @@ const UserController = {
                 throw new Error('Error! The two password is not same!')
             }
             const user = await User.findOne({
-                where: { name: req.body.name }
+                where: { name: req.body.email }
             })
             if (user) {
                 clientError = true
-                throw new Error('Error! User already exists: ' + user.name)
+                throw new Error('Error! User already exists: ' + user.email)
             }
             await UserController.tryCreate(req, res)
         } catch (error) {
@@ -93,7 +93,8 @@ const UserController = {
                 !req.body.password ||
                 !req.body.phone ||
                 !req.body.fullname ||
-                req.body.roleId === undefined) {
+                req.body.roleId === undefined ||
+                req.body.verified === undefined) {
                 clientError = true
                 throw new Error('Error! Bad request data!')
             }
@@ -114,10 +115,11 @@ const UserController = {
     async tryUpdate(req, res) {
         const user = await User.findByPk(req.params.id)
         user.email = req.body.email
-        user.password = bcrypt.hashSync(req.body.password)
+        // user.password = bcrypt.hashSync(req.body.password)
         user.phone = req.body.phone
         user.fullname = req.body.fullname
         user.roleId = req.body.roleId
+        user.verified = req.body.verified
         await user.save()
         res.status(200)
         res.json({
