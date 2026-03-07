@@ -69,10 +69,11 @@ const AuthController = {
         try {
             await sendEmail({
                 email: req.body.email,
-                subject: 'Regisztráció',
-                html: `Regisztráció megerősítése:<br>
+                subject: 'Regisztráció - Budapest Sporttelepek',
+                html: `Kedves ${req.body.fullname}!<br><br> Köszönjük regisztrációját. 
+                Megerősítéshez és az oldal használatához kattintson az alábbi linkre:<br>
                 ${verifyUrl}
-                `
+                <br>Budapest Sporttelepek csapata<br>`
             })
         } catch (error) {
             emailWarning = 'User created, but verification email could not be sent.'
