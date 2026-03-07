@@ -28,7 +28,7 @@ const AuthController = {
                 clientError = true
                 throw new Error('Error! User already exists: ' + user.email)
             }
-            AuthController.tryRegister(req, res)
+            await AuthController.tryRegister(req, res)
         } catch (error) {
             if (clientError) {
                 res.status(400)
@@ -45,7 +45,11 @@ const AuthController = {
     },
     async tryRegister(req, res) {
         const verificationToken = crypto.randomBytes(32).toString('hex')
-        const verifyUrl = process.env.APP_URL + '/verify-email/' + verificationToken
+        const envAppUrl = process.env.APP_URL?.trim()?.replace(/\/+$/, '')
+        const apiBaseUrl = envAppUrl
+            ? (envAppUrl.endsWith('/api') ? envAppUrl : `${envAppUrl}/api`)
+            : `${req.protocol}://${req.get('host')}/api`
+        const verifyUrl = `${apiBaseUrl}/verify-email/${verificationToken}`
 
         const user = {
             email: req.body.email,
@@ -56,13 +60,17 @@ const AuthController = {
         }
         const result = await User.create(user)
         
-        sendEmail({
-            email: req.body.email,
-            subject: 'Regisztráció',
-            html: `Regisztráció megerősítése:<br>
-            ${verifyUrl}
-            `
-        })
+        try {
+            await sendEmail({
+                email: req.body.email,
+                subject: 'Regisztráció',
+                html: `Regisztráció megerősítése:<br>
+                ${verifyUrl}
+                `
+            })
+        } catch (error) {
+            console.error('Email send failed:', error.message)
+        }
 
         res.status(201).json({
             succes: true,

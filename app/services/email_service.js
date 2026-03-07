@@ -1,8 +1,19 @@
 import nodemailer from 'nodemailer';
+import dotenvFlow from 'dotenv-flow'
+
+dotenvFlow.config()
+
+const emailPort = Number(process.env.EMAIL_PORT || 587)
+const emailSecure = process.env.EMAIL_SECURE === 'true' || emailPort === 465
+const rejectUnauthorized = process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false'
 
 const transport = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
+    port: emailPort,
+    secure: emailSecure,
+    tls: {
+        rejectUnauthorized
+    },
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
