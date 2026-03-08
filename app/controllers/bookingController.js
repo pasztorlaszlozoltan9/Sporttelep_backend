@@ -33,6 +33,24 @@ const getRecipientEmail = async (payload) => {
     return String(user.email).trim().toLowerCase()
 }
 
+const resolveRecipientEmail = async (payload, booking) => {
+    const fromPayload = await getRecipientEmail(payload)
+    if (fromPayload) {
+        return fromPayload
+    }
+
+    if (!booking?.userId) {
+        return null
+    }
+
+    const user = await User.findByPk(booking.userId)
+    if (!user?.email) {
+        return null
+    }
+
+    return String(user.email).trim().toLowerCase()
+}
+
 const collectBookingDetails = async (booking) => {
     const [sport, location, field, availableDate, price] = await Promise.all([
         booking.sportId ? Sport.findByPk(booking.sportId) : Promise.resolve(null),
@@ -65,9 +83,55 @@ const sendBookingConfirmation = async (booking, recipientEmail) => {
             <ul>
                 <li><strong>Sport:</strong> ${formatText(details.sport)}</li>
                 <li><strong>Helyszín:</strong> ${formatText(details.location)}</li>
+                <li><strong>Cim:</strong> ${formatText(details.locationAddress)}</li>
+                <li><strong>Palya:</strong> ${formatText(details.field)}</li>
+                <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
+                <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
+                <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
+            </ul>
+            <p>Köszönjük, hogy minket választottál!</p>
+        `
+    })
+}
+
+const sendBookingUpdateConfirmation = async (booking, recipientEmail) => {
+    const details = await collectBookingDetails(booking)
+
+    await sendEmail({
+        email: recipientEmail,
+        subject: 'Foglalás módosítva - Budapest Sporttelepek',
+        html: `
+            <h2>Foglalás frissítve</h2>
+            <p>A foglalásod sikeresen módosítottuk.</p>
+            <ul>
+                <li><strong>Sport:</strong> ${formatText(details.sport)}</li>
+                <li><strong>Helyszín:</strong> ${formatText(details.location)}</li>
                 <li><strong>ím:</strong> ${formatText(details.locationAddress)}</li>
                 <li><strong>álya:</strong> ${formatText(details.field)}</li>
-                <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
+                <li><strong>átum:</strong> ${formatText(details.date)}</li>
+                <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
+                <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
+            </ul>
+            <p>Köszönjük, hogy minket választottál!</p>
+        `
+    })
+}
+
+const sendBookingDeleteConfirmation = async (booking, recipientEmail) => {
+    const details = await collectBookingDetails(booking)
+
+    await sendEmail({
+        email: recipientEmail,
+        subject: 'Foglalás törölve - Budapest Sporttelepek',
+        html: `
+            <h2>Foglalás törlése sikeres</h2>
+            <p>A foglalásodat töröltük.</p>
+            <ul>
+                <li><strong>Sport:</strong> ${formatText(details.sport)}</li>
+                <li><strong>Helyszín:</strong> ${formatText(details.location)}</li>
+                <li><strong>ím:</strong> ${formatText(details.locationAddress)}</li>
+                <li><strong>álya:</strong> ${formatText(details.field)}</li>
+                <li><strong>átum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
                 <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
             </ul>
@@ -179,10 +243,25 @@ const BookingController = {
             throw new Error('Fail! Record not found!')
         }
         const booking = await Booking.findByPk(req.params.id)
+        let emailWarning = null
+
+        try {
+            const recipientEmail = await resolveRecipientEmail(req.body, booking)
+            if (recipientEmail) {
+                await sendBookingUpdateConfirmation(booking, recipientEmail)
+            } else {
+                emailWarning = 'Booking updated, but no recipient email was provided.'
+            }
+        } catch (error) {
+            emailWarning = 'Booking updated, but confirmation email could not be sent.'
+            console.error('Email sending failed after booking update:', error.message)
+        }
+
         res.status(200)
         res.json({
             success: true,
-            data: booking
+            data: booking,
+            emailWarning
         })
     },
     async destroy(req, res) {
@@ -198,13 +277,31 @@ const BookingController = {
         }
     },
     async tryDestroy(req, res) {
+        const existingBooking = await Booking.findByPk(req.params.id)
         const booking = await Booking.destroy({
             where: { id: req.params.id }
         })
+        let emailWarning = null
+
+        if (booking > 0 && existingBooking) {
+            try {
+                const recipientEmail = await resolveRecipientEmail(req.body, existingBooking)
+                if (recipientEmail) {
+                    await sendBookingDeleteConfirmation(existingBooking, recipientEmail)
+                } else {
+                    emailWarning = 'Booking deleted, but no recipient email was provided.'
+                }
+            } catch (error) {
+                emailWarning = 'Booking deleted, but confirmation email could not be sent.'
+                console.error('Email sending failed after booking delete:', error.message)
+            }
+        }
+
         res.status(200)
         res.json({
             success: true,
-            data: booking
+            data: booking,
+            emailWarning
         })
     }
 }
