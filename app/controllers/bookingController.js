@@ -1,4 +1,80 @@
 import Booking from '../models/booking.js'
+import User from '../models/user.js'
+import Sport from '../models/sport.js'
+import Location from '../models/location.js'
+import Field from '../models/field.js'
+import AvailableDate from '../models/availableDate.js'
+import Prices from '../models/prices.js'
+import sendEmail from '../services/email_service.js'
+
+const formatText = (value, fallback = 'N/A') => {
+    if (value === undefined || value === null) {
+        return fallback
+    }
+
+    const text = String(value).trim()
+    return text.length > 0 ? text : fallback
+}
+
+const getRecipientEmail = async (payload) => {
+    if (payload?.email) {
+        return String(payload.email).trim().toLowerCase()
+    }
+
+    if (!payload?.userId) {
+        return null
+    }
+
+    const user = await User.findByPk(payload.userId)
+    if (!user?.email) {
+        return null
+    }
+
+    return String(user.email).trim().toLowerCase()
+}
+
+const collectBookingDetails = async (booking) => {
+    const [sport, location, field, availableDate, price] = await Promise.all([
+        booking.sportId ? Sport.findByPk(booking.sportId) : Promise.resolve(null),
+        booking.locationId ? Location.findByPk(booking.locationId) : Promise.resolve(null),
+        booking.fieldId ? Field.findByPk(booking.fieldId) : Promise.resolve(null),
+        booking.availableDateId ? AvailableDate.findByPk(booking.availableDateId) : Promise.resolve(null),
+        booking.priceId ? Prices.findByPk(booking.priceId) : Promise.resolve(null)
+    ])
+
+    return {
+        sport: sport?.name,
+        location: location?.name,
+        locationAddress: location?.address,
+        field: field?.name,
+        date: booking?.date || availableDate?.date,
+        startTime: booking?.startTime || availableDate?.startTime,
+        price: price?.price
+    }
+}
+
+const sendBookingConfirmation = async (booking, recipientEmail) => {
+    const details = await collectBookingDetails(booking)
+
+    await sendEmail({
+        email: recipientEmail,
+        subject: 'Foglalás visszaigazolás - Budapest Sporttelepek',
+        html: `
+            <h2>Sikeres foglalás</h2>
+            <p>A foglalásod sikeresen rögzítésre került.</p>
+            <ul>
+                <li><strong>Sport:</strong> ${formatText(details.sport)}</li>
+                <li><strong>Helyszín:</strong> ${formatText(details.location)}</li>
+                <li><strong>ím:</strong> ${formatText(details.locationAddress)}</li>
+                <li><strong>álya:</strong> ${formatText(details.field)}</li>
+                <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
+                <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
+                <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
+            </ul>
+            <p>Köszönjük, hogy minket választottál!</p>
+        `
+    })
+}
 
 const BookingController = {
     async index(req, res) {
@@ -55,10 +131,25 @@ const BookingController = {
     },
     async tryStore(req, res) {
         const booking = await Booking.create(req.body)
+        let emailWarning = null
+
+        try {
+            const recipientEmail = await getRecipientEmail(req.body)
+            if (recipientEmail) {
+                await sendBookingConfirmation(booking, recipientEmail)
+            } else {
+                emailWarning = 'Booking created, but no recipient email was provided.'
+            }
+        } catch (error) {
+            emailWarning = 'Booking created, but confirmation email could not be sent.'
+            console.error('Email sending failed after booking creation:', error.message)
+        }
+
         res.status(201)
         res.json({
             success: true,
-            data: booking
+            data: booking,
+            emailWarning
         })
     },
     async update(req, res) {
