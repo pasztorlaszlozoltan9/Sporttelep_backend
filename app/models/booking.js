@@ -57,7 +57,8 @@ const Booking = sequelize.define('bookings', {
         onDelete: 'SET NULL'
     },
     date: { type: DataTypes.DATEONLY, allowNull: false  },
-    startTime: { type: DataTypes.TIME, allowNull: false  }, 
+    startTime: { type: DataTypes.TIME, allowNull: false  },
+    // sportDuration: { type: DataTypes.INTEGER, allowNull: false  },
 }, {
     timestamps: true,
     freezeTableName: true

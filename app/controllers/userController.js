@@ -144,6 +144,7 @@ const UserController = {
         const user = await User.findByPk(req.params.id)
         const normalizedPhone = normalizePhoneForStorage(req.body.phone)
         user.email = req.body.email
+        //user.password kérésének megszüntetése
         // user.password = bcrypt.hashSync(req.body.password)
         user.phone = normalizedPhone
         user.fullname = req.body.fullname
