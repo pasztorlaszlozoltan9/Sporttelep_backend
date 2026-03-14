@@ -1,4 +1,4 @@
-import db from '../../app/models/modrels.js';
+ import db from '../../app/models/modrels.js';
 
 async function up({context: QueryInterface}) {
   if(db.Field) {

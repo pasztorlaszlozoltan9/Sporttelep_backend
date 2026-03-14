@@ -14,7 +14,7 @@ const normalizeEmailPassword = (host, password) => {
 }
 
 const sendEmail = async (options) => {
-    const port = Number(process.env.EMAIL_PORT || 587)
+    const port = Number(process.env.EMAIL_PORT || 465)
     const host = process.env.EMAIL_HOST
     const transport = nodemailer.createTransport({
         host,

@@ -83,8 +83,8 @@ const sendBookingConfirmation = async (booking, recipientEmail) => {
             <ul>
                 <li><strong>Sport:</strong> ${formatText(details.sport)}</li>
                 <li><strong>Helyszín:</strong> ${formatText(details.location)}</li>
-                <li><strong>Cim:</strong> ${formatText(details.locationAddress)}</li>
-                <li><strong>Palya:</strong> ${formatText(details.field)}</li>
+                <li><strong>Cím:</strong> ${formatText(details.locationAddress)}</li>
+                <li><strong>Pálya:</strong> ${formatText(details.field)}</li>
                 <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
                 <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
@@ -106,9 +106,9 @@ const sendBookingUpdateConfirmation = async (booking, recipientEmail) => {
             <ul>
                 <li><strong>Sport:</strong> ${formatText(details.sport)}</li>
                 <li><strong>Helyszín:</strong> ${formatText(details.location)}</li>
-                <li><strong>ím:</strong> ${formatText(details.locationAddress)}</li>
-                <li><strong>álya:</strong> ${formatText(details.field)}</li>
-                <li><strong>átum:</strong> ${formatText(details.date)}</li>
+                <li><strong>Cím:</strong> ${formatText(details.locationAddress)}</li>
+                <li><strong>Pálya:</strong> ${formatText(details.field)}</li>
+                <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
                 <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
             </ul>
@@ -129,9 +129,9 @@ const sendBookingDeleteConfirmation = async (booking, recipientEmail) => {
             <ul>
                 <li><strong>Sport:</strong> ${formatText(details.sport)}</li>
                 <li><strong>Helyszín:</strong> ${formatText(details.location)}</li>
-                <li><strong>ím:</strong> ${formatText(details.locationAddress)}</li>
-                <li><strong>álya:</strong> ${formatText(details.field)}</li>
-                <li><strong>átum:</strong> ${formatText(details.date)}</li>
+                <li><strong>Cím:</strong> ${formatText(details.locationAddress)}</li>
+                <li><strong>Pálya:</strong> ${formatText(details.field)}</li>
+                <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
                 <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
             </ul>

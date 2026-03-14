@@ -1,5 +1,33 @@
 import bcrypt from 'bcryptjs'
 import User from '../models/user.js'
+import sendEmail from '../services/email_service.js'
+
+const normalizePhoneForStorage = (value) => {
+    if (value === undefined || value === null) {
+        throw new Error('Error! Phone is required!')
+    }
+
+    // Enforce string input so clients do not lose leading zeros via numeric coercion.
+    if (typeof value !== 'string') {
+        throw new Error('Error! Phone must be sent as text!')
+    }
+
+    const phone = value.trim()
+    if (!phone) {
+        throw new Error('Error! Phone is required!')
+    }
+
+    return phone
+}
+
+const formatText = (value, fallback = 'N/A') => {
+    if (value === undefined || value === null) {
+        return fallback
+    }
+
+    const text = String(value).trim()
+    return text.length > 0 ? text : fallback
+}
 
 const UserController = {
     async index(req, res) {
@@ -114,9 +142,10 @@ const UserController = {
     },
     async tryUpdate(req, res) {
         const user = await User.findByPk(req.params.id)
+        const normalizedPhone = normalizePhoneForStorage(req.body.phone)
         user.email = req.body.email
         // user.password = bcrypt.hashSync(req.body.password)
-        user.phone = req.body.phone
+        user.phone = normalizedPhone
         user.fullname = req.body.fullname
         user.roleId = req.body.roleId
         user.verified = req.body.verified
@@ -177,14 +206,62 @@ const UserController = {
         }
     },
     async tryDestroy(req, res) {
-        const user = await User.findByPk(req.params.id)
-        await user.destroy()
+        const existingUser = await User.findByPk(req.params.id)
+        if (!existingUser) {
+            res.status(404)
+            return res.json({
+                success: false,
+                message: 'Error! User not found!'
+            })
+        }
+
+        const recipientEmail = existingUser.email ? String(existingUser.email).trim().toLowerCase() : null
+        const fullName = existingUser.fullname
+        let emailWarning = null
+
+        await existingUser.destroy()
+        const deletedCount = 1
+
+        try {
+            if (recipientEmail) {
+                await sendAccountDeletionConfirmation({
+                    recipientEmail,
+                    fullName,
+                    deletedAt: new Date().toISOString()
+                })
+            } else {
+                emailWarning = 'User deleted, but no recipient email was provided.'
+            }
+        } catch (error) {
+            emailWarning = 'User deleted, but confirmation email could not be sent.'
+            console.error('Email sending failed after user delete:', error.message)
+        }
+
         res.status(200)
         res.json({
             success: true,
-            message: 'User is deleted successfully!'
+            message: 'User is deleted successfully!',
+            data: deletedCount,
+            emailWarning
         })
     }
+    
+}
+const sendAccountDeletionConfirmation = async ({ recipientEmail, fullName, deletedAt }) => {
+    await sendEmail({
+        email: recipientEmail,
+        subject: 'Fiók törlése - Budapest Sporttelepek',
+        html: `
+            <h2>Fiók törlése sikeres</h2>
+            <p>Kedves ${formatText(fullName, 'Felhasználó')}!</p>
+            <p>A fiókod sikeresen törlésre került a rendszerből.</p>
+            <ul>
+                <li><strong>Email:</strong> ${formatText(recipientEmail)}</li>
+                <li><strong>Törlés ideje:</strong> ${formatText(deletedAt)}</li>
+            </ul>
+            <p>Ha ezt nem te kezdeményezted, kérjük vedd fel velünk a kapcsolatot.</p>
+        `
+    })
 }
 
 export default UserController
