@@ -14,6 +14,8 @@ import FieldBookingWindowController from '../controllers/fieldBookingWindowContr
  
 router.post('/register', AuthController.register)
 router.get('/verify-email/:token', AuthController.verifyEmail)
+router.post('/forgot-password', AuthController.forgotPassword)
+router.post('/reset-password/:token', AuthController.resetPassword)
 router.post('/login', AuthController.login)
 router.post('/google-signin', AuthController.googleSignIn)
 router.get('/users', [verifyToken], UserController.index)

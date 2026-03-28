@@ -229,8 +229,97 @@ const AuthController = {
         res.status(200).json({
             success: true,
             message: 'The email is verified!',
-
         })
+    },
+
+    async forgotPassword(req, res) {
+        try {
+            if (!req.body.email) {
+                res.status(400)
+                return res.json({ success: false, message: 'Error! Email is required!' })
+            }
+
+            const user = await User.findOne({ where: { email: req.body.email } })
+
+            // Always respond the same way to avoid user enumeration
+            if (!user) {
+                return res.status(200).json({
+                    success: true,
+                    message: 'If an account with that email exists, a password reset link has been sent.'
+                })
+            }
+
+            const resetToken = crypto.randomBytes(32).toString('hex')
+            user.passwordResetToken = resetToken
+            user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+            await user.save()
+
+            const resetUrl = process.env.APP_URL + '/reset-password/' + resetToken
+
+            await sendEmail({
+                email: user.email,
+                subject: 'Jelszó visszaállítás - Budapest Sporttelepek',
+                html: `
+                    <h2>Jelszó visszaállítás</h2>
+                    <p>Kedves ${user.fullname || 'Felhasználó'}!</p>
+                    <p>Jelszó visszaállítási kérelmet kaptunk a fiókodhoz.</p>
+                    <p>Kattints az alábbi linkre a jelszavad megváltoztatásához (1 óráig érvényes):</p>
+                    <p><a href="${resetUrl}">${resetUrl}</a></p>
+                    <p>Ha nem te kérted ezt, hagyd figyelmen kívül ezt az emailt.</p>
+                    <p>Budapest Sporttelepek csapata</p>
+                `
+            })
+
+            res.status(200).json({
+                success: true,
+                message: 'If an account with that email exists, a password reset link has been sent.'
+            })
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Error! Password reset request failed!',
+                error: error.message
+            })
+        }
+    },
+
+    async resetPassword(req, res) {
+        try {
+            if (!req.body.password || !req.body.password_confirmation) {
+                res.status(400)
+                return res.json({ success: false, message: 'Error! Bad request data!' })
+            }
+
+            if (req.body.password !== req.body.password_confirmation) {
+                res.status(400)
+                return res.json({ success: false, message: 'Error! The two passwords are not the same!' })
+            }
+
+            const user = await User.findOne({
+                where: { passwordResetToken: req.params.token }
+            })
+
+            if (!user || !user.passwordResetExpires || user.passwordResetExpires < new Date()) {
+                res.status(400)
+                return res.json({ success: false, message: 'Error! Reset token is invalid or has expired.' })
+            }
+
+            user.password = bcrypt.hashSync(req.body.password)
+            user.passwordResetToken = null
+            user.passwordResetExpires = null
+            await user.save()
+
+            res.status(200).json({
+                success: true,
+                message: 'Password has been reset successfully!'
+            })
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Error! Password reset failed!',
+                error: error.message
+            })
+        }
     }
 
 }

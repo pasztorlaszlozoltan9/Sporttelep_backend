@@ -9,6 +9,8 @@ const User = sequelize.define('user', {
     roleId: { type: DataTypes.INTEGER, defaultValue: 0 },
     verificationToken: { type: DataTypes.STRING, allowNull: true },
     verified: { type: DataTypes.BOOLEAN, defaultValue: false },
+    passwordResetToken: { type: DataTypes.STRING, allowNull: true },
+    passwordResetExpires: { type: DataTypes.DATE, allowNull: true },
     active: { type: DataTypes.TINYINT, allowNull: false, defaultValue: 1 },
     
 })
