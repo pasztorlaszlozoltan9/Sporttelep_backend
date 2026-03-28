@@ -3,9 +3,202 @@ import User from '../models/user.js'
 import Sport from '../models/sport.js'
 import Location from '../models/location.js'
 import Field from '../models/field.js'
-import AvailableDate from '../models/availableDate.js'
 import Prices from '../models/prices.js'
+import FieldBookingWindow from '../models/fieldBookingWindow.js'
 import sendEmail from '../services/email_service.js'
+
+const BOOKING_STEP_MINUTES = 15
+
+const buildHttpError = (statusCode, message) => {
+    const error = new Error(message)
+    error.statusCode = statusCode
+    return error
+}
+
+const toInteger = (value) => {
+    const parsed = Number(value)
+    return Number.isInteger(parsed) ? parsed : null
+}
+
+const parseTimeToMinutes = (timeValue) => {
+    const text = String(timeValue || '').trim()
+    const parts = text.split(':')
+
+    if (parts.length < 2 || parts.length > 3) {
+        throw buildHttpError(400, 'Invalid startTime. Use HH:mm or HH:mm:ss format.')
+    }
+
+    const hour = toInteger(parts[0])
+    const minute = toInteger(parts[1])
+    const second = parts.length === 3 ? toInteger(parts[2]) : 0
+
+    if (hour === null || minute === null || second === null) {
+        throw buildHttpError(400, 'Invalid startTime. Use numeric time values.')
+    }
+
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) {
+        throw buildHttpError(400, 'Invalid startTime. Time must be between 00:00:00 and 23:59:59.')
+    }
+
+    return (hour * 60) + minute
+}
+
+const normalizeTime = (timeValue) => {
+    const text = String(timeValue || '').trim()
+    const parts = text.split(':')
+    const hour = String(toInteger(parts[0])).padStart(2, '0')
+    const minute = String(toInteger(parts[1])).padStart(2, '0')
+    const second = parts.length === 3 ? String(toInteger(parts[2])).padStart(2, '0') : '00'
+
+    return `${hour}:${minute}:${second}`
+}
+
+const minutesToTimeString = (value) => {
+    const hour = Math.floor(value / 60)
+    const minute = value % 60
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+const getWeekdayFromDate = (dateValue) => {
+    const date = new Date(`${String(dateValue)}T00:00:00`)
+
+    if (Number.isNaN(date.getTime())) {
+        throw buildHttpError(400, 'Invalid date. Use YYYY-MM-DD format.')
+    }
+
+    return date.getDay()
+}
+
+const resolveFieldDateAndTime = async (payload, existingBooking = null) => {
+    const fieldId = payload.fieldId ?? existingBooking?.fieldId ?? null
+    const date = payload.date ?? existingBooking?.date ?? null
+    const startTime = payload.startTime ?? existingBooking?.startTime ?? null
+    const endTime = payload.endTime ?? existingBooking?.endTime ?? null
+
+    if (!fieldId) {
+        throw buildHttpError(400, 'fieldId is required.')
+    }
+
+    if (!date) {
+        throw buildHttpError(400, 'date is required.')
+    }
+
+    if (!startTime) {
+        throw buildHttpError(400, 'startTime is required.')
+    }
+
+    if (!endTime) {
+        throw buildHttpError(400, 'endTime is required.')
+    }
+
+    const startMinutes = parseTimeToMinutes(startTime)
+    const endMinutes = parseTimeToMinutes(endTime)
+
+    if (startMinutes % BOOKING_STEP_MINUTES !== 0) {
+        throw buildHttpError(400, 'Invalid startTime. Start time must be in 15 minute increments.')
+    }
+
+    if (endMinutes % BOOKING_STEP_MINUTES !== 0) {
+        throw buildHttpError(400, 'Invalid endTime. End time must be in 15 minute increments.')
+    }
+
+    if (endMinutes <= startMinutes) {
+        throw buildHttpError(400, 'Invalid endTime. End time must be later than startTime.')
+    }
+
+    const durationMinutes = endMinutes - startMinutes
+
+    return {
+        fieldId,
+        date,
+        startTime: normalizeTime(startTime),
+        endTime: normalizeTime(endTime),
+        startMinutes,
+        endMinutes,
+        durationMinutes
+    }
+}
+
+const resolveBasePrice = async (fieldId, preferredPriceId = null) => {
+    if (preferredPriceId) {
+        const selectedPrice = await Prices.findByPk(preferredPriceId)
+        if (!selectedPrice) {
+            throw buildHttpError(400, 'Invalid priceId. Record not found.')
+        }
+
+        if (selectedPrice.fieldId && selectedPrice.fieldId !== fieldId) {
+            throw buildHttpError(400, 'Invalid priceId. Selected price does not belong to the chosen field.')
+        }
+
+        return selectedPrice
+    }
+
+    const fieldPrice = await Prices.findOne({
+        where: { fieldId },
+        order: [['id', 'DESC']]
+    })
+
+    if (!fieldPrice) {
+        throw buildHttpError(400, 'No base price found for this field. Add a 60-minute base price first.')
+    }
+
+    return fieldPrice
+}
+
+const ensureNoBookingOverlap = async ({ fieldId, date, startMinutes, endMinutes, ignoreBookingId = null }) => {
+    const existingBookings = await Booking.findAll({
+        where: {
+            fieldId,
+            date
+        }
+    })
+
+    for (const booking of existingBookings) {
+        if (ignoreBookingId && Number(booking.id) === Number(ignoreBookingId)) {
+            continue
+        }
+
+        const bookedStartMinutes = parseTimeToMinutes(booking.startTime)
+        const bookedEndMinutes = booking.endTime
+            ? parseTimeToMinutes(booking.endTime)
+            : bookedStartMinutes + 60
+
+        if (startMinutes < bookedEndMinutes && endMinutes > bookedStartMinutes) {
+            throw buildHttpError(400, 'This field is already booked in the selected time range.')
+        }
+    }
+}
+
+const ensureWithinFieldBookingWindow = async ({ fieldId, date, startMinutes, endMinutes }) => {
+    const weekday = getWeekdayFromDate(date)
+
+    const windows = await FieldBookingWindow.findAll({
+        where: {
+            fieldId,
+            weekday,
+            isActive: 1
+        }
+    })
+
+    if (!windows.length) {
+        throw buildHttpError(400, 'This field cannot be booked on the selected date.')
+    }
+
+    const isInsideAnyWindow = windows.some((window) => {
+        const openMinutes = parseTimeToMinutes(window.openTime)
+        const closeMinutes = parseTimeToMinutes(window.closeTime)
+        return startMinutes >= openMinutes && endMinutes <= closeMinutes
+    })
+
+    if (!isInsideAnyWindow) {
+        throw buildHttpError(400, 'Selected time is outside field booking hours for this day.')
+    }
+}
+
+const calculateTotalPrice = (basePricePerHour, durationMinutes) => {
+    const amount = (Number(basePricePerHour) * Number(durationMinutes)) / 60
+    return Number(amount.toFixed(2))
+}
 
 const formatText = (value, fallback = 'N/A') => {
     if (value === undefined || value === null) {
@@ -52,22 +245,28 @@ const resolveRecipientEmail = async (payload, booking) => {
 }
 
 const collectBookingDetails = async (booking) => {
-    const [sport, location, field, availableDate, price] = await Promise.all([
+    const [sport, location, field, price] = await Promise.all([
         booking.sportId ? Sport.findByPk(booking.sportId) : Promise.resolve(null),
         booking.locationId ? Location.findByPk(booking.locationId) : Promise.resolve(null),
         booking.fieldId ? Field.findByPk(booking.fieldId) : Promise.resolve(null),
-        booking.availableDateId ? AvailableDate.findByPk(booking.availableDateId) : Promise.resolve(null),
         booking.priceId ? Prices.findByPk(booking.priceId) : Promise.resolve(null)
     ])
+
+    const startMinutes = booking?.startTime ? parseTimeToMinutes(booking.startTime) : null
+    const endMinutes = booking?.endTime ? parseTimeToMinutes(booking.endTime) : null
+    const durationMinutes = (startMinutes !== null && endMinutes !== null) ? endMinutes - startMinutes : null
 
     return {
         sport: sport?.name,
         location: location?.name,
         locationAddress: location?.address,
         field: field?.name,
-        date: booking?.date || availableDate?.date,
-        startTime: booking?.startTime || availableDate?.startTime,
-        price: price?.price
+        date: booking?.date,
+        startTime: booking?.startTime,
+        endTime: booking?.endTime,
+        durationMinutes,
+        basePricePerHour: price?.price,
+        totalPrice: booking?.totalPrice
     }
 }
 
@@ -87,7 +286,10 @@ const sendBookingConfirmation = async (booking, recipientEmail) => {
                 <li><strong>Pálya:</strong> ${formatText(details.field)}</li>
                 <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
-                <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
+                <li><strong>Befejezés:</strong> ${formatText(details.endTime)}</li>
+                <li><strong>Időtartam:</strong> ${formatText(details.durationMinutes, '-')} perc</li>
+                <li><strong>60 perces alapár:</strong> ${formatText(details.basePricePerHour, '-')}</li>
+                <li><strong>Fizetendő:</strong> ${formatText(details.totalPrice, '-')}</li>
             </ul>
             <p>Köszönjük, hogy minket választottál!</p>
         `
@@ -110,7 +312,10 @@ const sendBookingUpdateConfirmation = async (booking, recipientEmail) => {
                 <li><strong>Pálya:</strong> ${formatText(details.field)}</li>
                 <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
-                <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
+                <li><strong>Befejezés:</strong> ${formatText(details.endTime)}</li>
+                <li><strong>Időtartam:</strong> ${formatText(details.durationMinutes, '-')} perc</li>
+                <li><strong>60 perces alapár:</strong> ${formatText(details.basePricePerHour, '-')}</li>
+                <li><strong>Fizetendő:</strong> ${formatText(details.totalPrice, '-')}</li>
             </ul>
             <p>Köszönjük, hogy minket választottál!</p>
         `
@@ -133,7 +338,10 @@ const sendBookingDeleteConfirmation = async (booking, recipientEmail) => {
                 <li><strong>Pálya:</strong> ${formatText(details.field)}</li>
                 <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
-                <li><strong>Ár:</strong> ${formatText(details.price, '-')}</li>
+                <li><strong>Befejezés:</strong> ${formatText(details.endTime)}</li>
+                <li><strong>Időtartam:</strong> ${formatText(details.durationMinutes, '-')} perc</li>
+                <li><strong>60 perces alapár:</strong> ${formatText(details.basePricePerHour, '-')}</li>
+                <li><strong>Fizetendő:</strong> ${formatText(details.totalPrice, '-')}</li>
             </ul>
             <p>Köszönjük, hogy minket választottál!</p>
         `
@@ -185,16 +393,35 @@ const BookingController = {
         try {
             await BookingController.tryStore(req, res)
         }catch(error) {
-            res.status(500)
+            res.status(error.statusCode || 500)
             res.json({
                 success: false,
-                message: 'Error! The query is failed!',
+                message: error.statusCode ? error.message : 'Error! The query is failed!',
                 error: error.message
             })
         }
     },
     async tryStore(req, res) {
-        const booking = await Booking.create(req.body)
+        const resolvedWindow = await resolveFieldDateAndTime(req.body)
+        const selectedPrice = await resolveBasePrice(
+            resolvedWindow.fieldId,
+            req.body.priceId ?? null
+        )
+
+        await ensureWithinFieldBookingWindow(resolvedWindow)
+        await ensureNoBookingOverlap(resolvedWindow)
+
+        const bookingPayload = {
+            ...req.body,
+            fieldId: resolvedWindow.fieldId,
+            date: resolvedWindow.date,
+            startTime: resolvedWindow.startTime,
+            endTime: resolvedWindow.endTime,
+            priceId: selectedPrice.id,
+            totalPrice: calculateTotalPrice(selectedPrice.price, resolvedWindow.durationMinutes)
+        }
+
+        const booking = await Booking.create(bookingPayload)
         let emailWarning = null
 
         try {
@@ -220,10 +447,13 @@ const BookingController = {
         try {
             await BookingController.tryUpdate(req, res)
         }catch(error) {
-            let actualMessage = '';
+            let actualMessage = ''
             if(error.message == 'Fail! Record not found!') {
                 actualMessage = error.message
                 res.status(404)
+            }else if (error.statusCode) {
+                actualMessage = error.message
+                res.status(error.statusCode)
             }else {
                 res.status(500)
                 actualMessage = 'Fail! The query is failed!'
@@ -236,12 +466,37 @@ const BookingController = {
         }
     },
     async tryUpdate(req, res) {
-        const recordNumber = await Booking.update(req.body, {
-            where: { id: req.params.id }
-        })
-        if(recordNumber == 0) {
+        const existingBooking = await Booking.findByPk(req.params.id)
+        if (!existingBooking) {
             throw new Error('Fail! Record not found!')
         }
+
+        const resolvedWindow = await resolveFieldDateAndTime(req.body, existingBooking)
+        const selectedPrice = await resolveBasePrice(
+            resolvedWindow.fieldId,
+            req.body.priceId ?? existingBooking.priceId ?? null
+        )
+
+        await ensureWithinFieldBookingWindow(resolvedWindow)
+        await ensureNoBookingOverlap({
+            ...resolvedWindow,
+            ignoreBookingId: req.params.id
+        })
+
+        const updatePayload = {
+            ...req.body,
+            fieldId: resolvedWindow.fieldId,
+            date: resolvedWindow.date,
+            startTime: resolvedWindow.startTime,
+            endTime: resolvedWindow.endTime,
+            priceId: selectedPrice.id,
+            totalPrice: calculateTotalPrice(selectedPrice.price, resolvedWindow.durationMinutes)
+        }
+
+        await Booking.update(updatePayload, {
+            where: { id: req.params.id }
+        })
+
         const booking = await Booking.findByPk(req.params.id)
         let emailWarning = null
 

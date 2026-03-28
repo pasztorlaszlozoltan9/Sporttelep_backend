@@ -19,13 +19,13 @@ The settings are located in a file called:
 To generate the .env file:
 
 ```cmd
-node op conf:generate
+node op.js conf:generate
 ```
 
 ### Test configurations file generate
 
 ```cmd
-node op testconf:generate
+node op.js testconf:generate
 ```
 
 Result: .env.test file.
@@ -35,7 +35,7 @@ Result: .env.test file.
 Te generate the application key:
 
 ```cmd
-node op key:generate
+node op.js key:generate
 ```
 
 ## Database setup
@@ -85,8 +85,8 @@ To query users or user, send the bearer token to endpoint.
 Use the following instructions to generate models and controllers:
 
 ```cmd
-node op make:model thing
-node op make:controller thing
+node op.js make:model thing
+node op.js make:controller thing
 ```
 
 ## Key generation
@@ -94,7 +94,7 @@ node op make:controller thing
 You can generate the application key with the following command:
 
 ```cmd
-node op key:generate
+node op.js key:generate
 ```
 
 ## Generate admin user
@@ -102,7 +102,7 @@ node op key:generate
 You can create an admin user if it does not already exist in the database:
 
 ```cmd
-node op admin:generate
+node op.js admin:generate
 ```
 
 ## Database import
@@ -110,11 +110,11 @@ node op admin:generate
 It is possible to import data from JSON and CSV files.
 
 ```cmd
-node op db:import thing things.json
-node op db:import thing things.csv
-node op db:import thing things.csv ,
-node op db:import thing things.csv ";"
-node op db:import thing things.csv :
+node op.js db:import thing things.json
+node op.js db:import thing things.csv
+node op.js db:import thing things.csv ,
+node op.js db:import thing things.csv ";"
+node op.js db:import thing things.csv :
 ```
 
 The last option is the separator.
@@ -133,7 +133,7 @@ employees.json:
 The default separator is comma.
 
 ```cmd
-node op db:import employee employees.json
+node op.js db:import employee employees.json
 ```
 
 For example CSV file:
@@ -155,7 +155,7 @@ id:name
 ```
 
 ```cmd
-node op db:import employee employees.csv --sep :
+node op.js db:import employee employees.csv --sep :
 ```
 
 If the file has semicolon separator, use sep parameter, for example:
@@ -169,7 +169,7 @@ id;name
 Use next command:
 
 ```cmd
-node op db:import employee employees.csv --sep ";"
+node op.js db:import employee employees.csv --sep ";"
 ```
 
 ## Database
@@ -201,13 +201,13 @@ If the value is false, there is no synchronization in either case.
 Generate a migration:
 
 ```bash
-node op make/migration thing
+node op.js make/migration thing
 ```
 
 For example migration for employee table:
 
 ```bash
-node op make/migration employee
+node op.js make/migration employee
 ```
 
 ```javascript
@@ -242,36 +242,36 @@ export { up, down }
 Run all migration:
 
 ```bash
-node op migration:run
-node op migrate
+node op.js migration:run
+node op.js migrate
 ```
 
 Run a migration:
 
 ```bash
-node op migration:run <migration_name>
-node op migrate <migration_name>
+node op.js migration:run <migration_name>
+node op.js migrate <migration_name>
 ```
 
 Rollback the last migration:
 
 ```bash
-node op migration:rollback
-node op migrate:rollback
+node op.js migration:rollback
+node op.js migrate:rollback
 ```
 
 Rollback two migrations:
 
 ```bash
-node op migration:rollback 2
-node op migrate:rollback 2
+node op.js migration:rollback 2
+node op.js migrate:rollback 2
 ```
 
 Reset the database:
 
 ```bash
-node op migration:reset
-node op migrate:reset
+node op.js migration:reset
+node op.js migrate:reset
 ```
 
 This command also undoes seeder operations.
@@ -279,8 +279,8 @@ This command also undoes seeder operations.
 Reset the database and run all migrations:
 
 ```bash
-node op migration:fresh
-node op migrate:fresh
+node op.js migration:fresh
+node op.js migrate:fresh
 ```
 
 ### Database seed
@@ -288,13 +288,13 @@ node op migrate:fresh
 Generate a seeder:
 
 ```bash
-node op make/seeder thing
+node op.js make/seeder thing
 ```
 
 Example seeder for employee table:
 
 ```bash
-node op make/seeder employee
+node op.js make/seeder employee
 ```
 
 ```javascript
@@ -330,11 +330,11 @@ export { up, down }
 Run all seeders:
 
 ```bash
-node op db:seed
+node op.js db:seed
 ```
 
 Run a seeder:
 
 ```bash
-node op db:seed path_thing
+node op.js db:seed path_thing
 ```

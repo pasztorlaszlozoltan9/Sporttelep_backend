@@ -118,11 +118,11 @@ const UserController = {
         var clientError = false;
         try {
             if (!req.body.email ||
-                !req.body.password ||
                 !req.body.phone ||
                 !req.body.fullname ||
                 req.body.roleId === undefined ||
-                req.body.verified === undefined) {
+                req.body.verified === undefined ||
+                req.body.active === undefined) {
                 clientError = true
                 throw new Error('Error! Bad request data!')
             }
@@ -142,19 +142,42 @@ const UserController = {
     },
     async tryUpdate(req, res) {
         const user = await User.findByPk(req.params.id)
+        const previousActive = Number(user.active)
         const normalizedPhone = normalizePhoneForStorage(req.body.phone)
         user.email = req.body.email
-        //user.password kérésének megszüntetése
-        // user.password = bcrypt.hashSync(req.body.password)
         user.phone = normalizedPhone
         user.fullname = req.body.fullname
         user.roleId = req.body.roleId
         user.verified = req.body.verified
+        user.active = req.body.active
         await user.save()
+
+        let emailWarning = null
+        const isReactivated = previousActive === 0 && Number(req.body.active) === 1
+
+        if (isReactivated) {
+            try {
+                const recipientEmail = user.email ? String(user.email).trim().toLowerCase() : null
+                if (recipientEmail) {
+                    await sendAccountReactivationConfirmation({
+                        recipientEmail,
+                        fullName: user.fullname,
+                        reactivatedAt: new Date().toISOString()
+                    })
+                } else {
+                    emailWarning = 'User reactivated, but no recipient email was provided.'
+                }
+            } catch (error) {
+                emailWarning = 'User reactivated, but confirmation email could not be sent.'
+                console.error('Email sending failed after user reactivation:', error.message)
+            }
+        }
+
         res.status(200)
         res.json({
             success: true,
-            data: user
+            data: user,
+            emailWarning
         })
     },
 
@@ -220,8 +243,8 @@ const UserController = {
         const fullName = existingUser.fullname
         let emailWarning = null
 
-        await existingUser.destroy()
-        const deletedCount = 1
+        existingUser.active = 0
+        await existingUser.save()
 
         try {
             if (recipientEmail) {
@@ -231,36 +254,53 @@ const UserController = {
                     deletedAt: new Date().toISOString()
                 })
             } else {
-                emailWarning = 'User deleted, but no recipient email was provided.'
+                emailWarning = 'User deactivated, but no recipient email was provided.'
             }
         } catch (error) {
-            emailWarning = 'User deleted, but confirmation email could not be sent.'
-            console.error('Email sending failed after user delete:', error.message)
+            emailWarning = 'User deactivated, but confirmation email could not be sent.'
+            console.error('Email sending failed after user deactivation:', error.message)
         }
 
         res.status(200)
         res.json({
             success: true,
-            message: 'User is deleted successfully!',
-            data: deletedCount,
+            message: 'User is deactivated successfully!',
+            data: existingUser,
             emailWarning
         })
     }
     
 }
+const sendAccountReactivationConfirmation = async ({ recipientEmail, fullName, reactivatedAt }) => {
+    await sendEmail({
+        email: recipientEmail,
+        subject: 'Fiók újraaktiválva - Budapest Sporttelepek',
+        html: `
+            <h2>Fiók újraaktiválva</h2>
+            <p>Kedves ${formatText(fullName, 'Felhasználó')}!</p>
+            <p>A fiókod sikeresen újraaktiválásra került.</p>
+            <ul>
+                <li><strong>Email:</strong> ${formatText(recipientEmail)}</li>
+                <li><strong>Aktiválás ideje:</strong> ${formatText(reactivatedAt)}</li>
+            </ul>
+            <p>Köszönjük, hogy ismét velünk vagy!</p>
+        `
+    })
+}
+
 const sendAccountDeletionConfirmation = async ({ recipientEmail, fullName, deletedAt }) => {
     await sendEmail({
         email: recipientEmail,
-        subject: 'Fiók törlése - Budapest Sporttelepek',
+        subject: 'Fiók inaktiválása - Budapest Sporttelepek',
         html: `
-            <h2>Fiók törlése sikeres</h2>
+            <h2>Fiók inaktiválása sikeres</h2>
             <p>Kedves ${formatText(fullName, 'Felhasználó')}!</p>
-            <p>A fiókod sikeresen törlésre került a rendszerből.</p>
+            <p>A fiókod sikeresen inaktiválásra került a rendszerből.</p>
             <ul>
                 <li><strong>Email:</strong> ${formatText(recipientEmail)}</li>
-                <li><strong>Törlés ideje:</strong> ${formatText(deletedAt)}</li>
+                <li><strong>Inaktiválás ideje:</strong> ${formatText(deletedAt)}</li>
             </ul>
-            <p>Ha ezt nem te kezdeményezted, kérjük vedd fel velünk a kapcsolatot.</p>
+            <p>Ha ezt nem te kezdeményezted, vagy szeretnéd újra aktiválni a fiókodat, kérjük vedd fel velünk a kapcsolatot.</p>
         `
     })
 }

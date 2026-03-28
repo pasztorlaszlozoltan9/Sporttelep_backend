@@ -7,10 +7,10 @@ import verifyToken from '../middleware/authjwt.js';
 import LocationController from '../controllers/locationController.js';
 import SportController from '../controllers/sportController.js';
 import FieldController from '../controllers/fieldController.js';
-import AvailableDateController from '../controllers/availableDateController.js';
 import BookingController from '../controllers/bookingController.js';
 import TesztController from '../controllers/tesztController.js';
 import PricesController from '../controllers/pricesController.js';
+import FieldBookingWindowController from '../controllers/fieldBookingWindowController.js';
  
 router.post('/register', AuthController.register)
 router.get('/verify-email/:token', AuthController.verifyEmail)
@@ -40,12 +40,6 @@ router.post('/fields', FieldController.store);
 router.put('/fields/:id', FieldController.update);
 router.delete('/fields/:id', FieldController.destroy);
 
-router.get('/availabledates', AvailableDateController.index);
-router.get('/availabledates/:id', AvailableDateController.show);
-router.post('/availabledates', AvailableDateController.store);
-router.put('/availabledates/:id', AvailableDateController.update);
-router.delete('/availabledates/:id', AvailableDateController.destroy);
-
 router.get('/bookings', BookingController.index);
 router.get('/bookings/:id', BookingController.show);
 router.post('/bookings', BookingController.store);
@@ -69,5 +63,11 @@ router.get('/prices/:id', PricesController.show);
 router.post('/prices', PricesController.store);
 router.put('/prices/:id', PricesController.update);
 router.delete('/prices/:id', PricesController.destroy);
+
+router.get('/field-booking-windows', FieldBookingWindowController.index);
+router.get('/field-booking-windows/:id', FieldBookingWindowController.show);
+router.post('/field-booking-windows', FieldBookingWindowController.store);
+router.put('/field-booking-windows/:id', FieldBookingWindowController.update);
+router.delete('/field-booking-windows/:id', FieldBookingWindowController.destroy);
 
 export default router

@@ -38,15 +38,6 @@ const Booking = sequelize.define('bookings', {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
     },
-    availableDateId:{
-        type: DataTypes.INTEGER,
-        references: {
-            model: 'availableDates',
-            key: 'id'  
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
-    },
     priceId:{
         type: DataTypes.INTEGER,
         references: {
@@ -58,7 +49,8 @@ const Booking = sequelize.define('bookings', {
     },
     date: { type: DataTypes.DATEONLY, allowNull: false  },
     startTime: { type: DataTypes.TIME, allowNull: false  },
-    // sportDuration: { type: DataTypes.INTEGER, allowNull: false  },
+    endTime: { type: DataTypes.TIME, allowNull: false },
+    totalPrice: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
 }, {
     timestamps: true,
     freezeTableName: true
