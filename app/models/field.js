@@ -5,6 +5,10 @@ const Field = sequelize.define('fields', {
     name: {
       type: DataTypes.STRING
     },
+    imageUrl: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     locationId: {
       type: DataTypes.INTEGER,
       references: {

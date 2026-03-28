@@ -6,6 +6,7 @@ Dependencies must be installed before use.
 
 ```cmd
 npm install
+npm install cloudinary
 ```
 
 Or use your favorite package manager.

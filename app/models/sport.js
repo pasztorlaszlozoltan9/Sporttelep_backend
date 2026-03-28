@@ -7,6 +7,10 @@ const Sport = sequelize.define('sports', {
     },
     duration: {
       type: DataTypes.INTEGER
+    },
+    imageUrl: {
+      type: DataTypes.TEXT,
+      allowNull: true
     }
 }, {
     timestamps: true,

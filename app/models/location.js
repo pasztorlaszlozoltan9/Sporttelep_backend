@@ -5,6 +5,7 @@ const Location = sequelize.define('locations', {
     name: { type: DataTypes.STRING, allowNull: false },
     address: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false },
+    imageUrl: { type: DataTypes.TEXT, allowNull: true },
     
 }, {
     timestamps: true,

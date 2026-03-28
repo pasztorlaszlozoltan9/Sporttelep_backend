@@ -2,8 +2,11 @@ import Router from 'express'
 const router = Router()
 
 import AuthController from '../controllers/authController.js';
+import UploadController from '../controllers/uploadController.js';
 import UserController from '../controllers/userController.js';
 import verifyToken from '../middleware/authjwt.js';
+import isAdmin from '../middleware/authAdmin.js';
+import { singleImageUpload } from '../middleware/upload.js';
 import LocationController from '../controllers/locationController.js';
 import SportController from '../controllers/sportController.js';
 import FieldController from '../controllers/fieldController.js';
@@ -18,6 +21,7 @@ router.post('/forgot-password', AuthController.forgotPassword)
 router.post('/reset-password/:token', AuthController.resetPassword)
 router.post('/login', AuthController.login)
 router.post('/google-signin', AuthController.googleSignIn)
+router.post('/uploads/image', [verifyToken], isAdmin, singleImageUpload('image'), UploadController.image)
 router.get('/users', [verifyToken], UserController.index)
 router.get('/users/:id', [verifyToken], UserController.show)
 router.put('/users/:id', [verifyToken], UserController.update)
