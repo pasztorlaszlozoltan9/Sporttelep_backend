@@ -30,50 +30,44 @@ router.delete('/users/:id', [verifyToken], UserController.destroy)
 
 router.get('/locations', LocationController.index);
 router.get('/locations/:id', LocationController.show);
-router.post('/locations', LocationController.store);
-router.put('/locations/:id', LocationController.update);
-router.delete('/locations/:id', LocationController.destroy);
+router.post('/locations', [verifyToken], LocationController.store);
+router.put('/locations/:id', [verifyToken], LocationController.update);
+router.delete('/locations/:id', [verifyToken], isAdmin, LocationController.destroy);
 
 router.get('/sports', SportController.index);
 router.get('/sports/:id', SportController.show);
-router.post('/sports', SportController.store);
-router.put('/sports/:id', SportController.update);
-router.delete('/sports/:id', SportController.destroy);
+router.post('/sports', [verifyToken], SportController.store);
+router.put('/sports/:id', [verifyToken], SportController.update);
+router.delete('/sports/:id', [verifyToken], isAdmin, SportController.destroy);
 
 router.get('/fields', FieldController.index);
 router.get('/fields/:id', FieldController.show);
-router.post('/fields', FieldController.store);
-router.put('/fields/:id', FieldController.update);
-router.delete('/fields/:id', FieldController.destroy);
+router.post('/fields', [verifyToken], FieldController.store);
+router.put('/fields/:id', [verifyToken], FieldController.update);
+router.delete('/fields/:id', [verifyToken], isAdmin, FieldController.destroy);
 
 router.get('/bookings', BookingController.index);
 router.get('/bookings/:id', BookingController.show);
-router.post('/bookings', BookingController.store);
-router.put('/bookings/:id', BookingController.update);
-router.delete('/bookings/:id', BookingController.destroy);
+router.post('/bookings', [verifyToken], BookingController.store);
+router.put('/bookings/:id', [verifyToken], BookingController.update);
+router.delete('/bookings/:id', [verifyToken], BookingController.destroy);
 
 router.get('/teszts', TesztController.index);
 router.get('/teszts/:id', TesztController.show);
-router.post('/teszts', TesztController.store);
-router.put('/teszts/:id', TesztController.update);
-router.delete('/teszts/:id', TesztController.destroy);
-
-router.get('/bookings', BookingController.index);
-router.get('/bookings/:id', BookingController.show);
-router.post('/bookings', BookingController.store);
-router.put('/bookings/:id', BookingController.update);
-router.delete('/bookings/:id', BookingController.destroy);
+router.post('/teszts', [verifyToken], TesztController.store);
+router.put('/teszts/:id', [verifyToken], TesztController.update);
+router.delete('/teszts/:id', [verifyToken], isAdmin, TesztController.destroy);
 
 router.get('/prices', PricesController.index);
 router.get('/prices/:id', PricesController.show);
-router.post('/prices', PricesController.store);
-router.put('/prices/:id', PricesController.update);
-router.delete('/prices/:id', PricesController.destroy);
+router.post('/prices', [verifyToken], PricesController.store);
+router.put('/prices/:id', [verifyToken], PricesController.update);
+router.delete('/prices/:id', [verifyToken], isAdmin, PricesController.destroy);
 
 router.get('/field-booking-windows', FieldBookingWindowController.index);
 router.get('/field-booking-windows/:id', FieldBookingWindowController.show);
-router.post('/field-booking-windows', FieldBookingWindowController.store);
-router.put('/field-booking-windows/:id', FieldBookingWindowController.update);
-router.delete('/field-booking-windows/:id', FieldBookingWindowController.destroy);
+router.post('/field-booking-windows', [verifyToken], FieldBookingWindowController.store);
+router.put('/field-booking-windows/:id', [verifyToken], FieldBookingWindowController.update);
+router.delete('/field-booking-windows/:id', [verifyToken], isAdmin, FieldBookingWindowController.destroy);
 
 export default router
