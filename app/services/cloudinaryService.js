@@ -76,4 +76,26 @@ const uploadImageBuffer = async (file, options = {}) => {
     })
 }
 
+const listImages = async (options = {}) => {
+    ensureCloudinaryConfig()
+    const cloudinary = await getCloudinaryClient()
+
+    const folder = normalizeFolderName(options.folder || 'sporttelep')
+    const maxResults = Number.isInteger(options.maxResults) ? options.maxResults : 500
+
+    const result = await cloudinary.api.resources({
+        type: 'upload',
+        resource_type: 'image',
+        prefix: `${folder}/`,
+        max_results: Math.min(Math.max(maxResults, 1), 500)
+    })
+
+    return (result.resources || []).map((resource) => ({
+        url: resource.secure_url,
+        publicId: resource.public_id,
+        createdAt: resource.created_at
+    }))
+}
+
+export { listImages }
 export default uploadImageBuffer

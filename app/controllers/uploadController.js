@@ -1,4 +1,4 @@
-import uploadImageBuffer from '../services/cloudinaryService.js'
+import uploadImageBuffer, { listImages } from '../services/cloudinaryService.js'
 
 const UploadController = {
     async image(req, res) {
@@ -36,6 +36,28 @@ const UploadController = {
                 width: result.width,
                 height: result.height
             }
+        })
+    },
+    async images(req, res) {
+        try {
+            await UploadController.tryImages(req, res)
+        }catch(error) {
+            res.status(500)
+            res.json({
+                success: false,
+                message: 'Image listing failed!',
+                error: error.message
+            })
+        }
+    },
+    async tryImages(req, res) {
+        const folder = req.query.folder || 'sporttelep'
+        const images = await listImages({ folder })
+
+        res.status(200)
+        res.json({
+            success: true,
+            data: images.map((item) => item.url)
         })
     }
 }
