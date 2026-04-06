@@ -11,9 +11,6 @@ async function up({context: QueryInterface}) {
     name: {
       type: DataTypes.STRING
     },
-    duration: {
-      type: DataTypes.INTEGER
-    },
     createdAt: { type: DataTypes.DATE },
     updatedAt: { type: DataTypes.DATE }    
   });
