@@ -6,6 +6,8 @@ Dependencies must be installed before use.
 
 ```cmd
 npm install
+npm install node-mailjet
+npm install google-auth-library
 npm install cloudinary
 ```
 
