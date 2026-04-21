@@ -5,12 +5,23 @@ const parseBooleanEnv = (value, fallback) => {
     return String(value).toLowerCase() === 'true'
 }
 
+const stripSurroundingQuotes = (value) => {
+    return String(value || '').trim().replace(/^['\"]|['\"]$/g, '')
+}
+
+const normalizeEmailUser = (value) => {
+    return stripSurroundingQuotes(value).toLowerCase()
+}
+
 const normalizeEmailPassword = (host, password) => {
     const normalizedHost = String(host || '').toLowerCase()
+    const normalizedPassword = stripSurroundingQuotes(password)
+
     if (normalizedHost.includes('gmail.com')) {
-        return String(password || '').replace(/\s+/g, '')
+        return normalizedPassword.replace(/\s+/g, '')
     }
-    return password
+
+    return normalizedPassword
 }
 
 const sendEmail = async (options) => {
@@ -21,7 +32,7 @@ const sendEmail = async (options) => {
         port,
         secure: port === 465,
         auth: {
-            user: String(process.env.EMAIL_USER || '').trim(),
+            user: normalizeEmailUser(process.env.EMAIL_USER),
             pass: normalizeEmailPassword(host, process.env.EMAIL_PASS)
         },
         tls: {

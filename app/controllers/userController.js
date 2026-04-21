@@ -29,6 +29,16 @@ const formatText = (value, fallback = 'N/A') => {
     return text.length > 0 ? text : fallback
 }
 
+const isValidEmail = (value) => {
+    if (value === undefined || value === null) {
+        return false
+    }
+
+    const email = String(value).trim().toLowerCase()
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+}
+
 const UserController = {
     async index(req, res) {
         try {
@@ -42,7 +52,19 @@ const UserController = {
         }
     },
     async tryIndex(req, res) {
-        const users = await User.findAll()
+        const users = await User.findAll({
+            attributes: [
+                'id',
+                'email',
+                'phone',
+                'fullname',
+                'roleId',
+                'verified',
+                'active',
+                'createdAt',
+                'updatedAt'
+            ]
+        })
         res.status(200)
         res.json({
             success: true,
@@ -267,6 +289,41 @@ const UserController = {
             message: 'User is deactivated successfully!',
             data: existingUser,
             emailWarning
+        })
+    },
+    async adminRecipients(req, res) {
+        try {
+            await UserController.tryAdminRecipients(req, res)
+        } catch (error) {
+            res.status(500)
+            res.json({
+                success: false,
+                message: 'Error! The query is failed!',
+                error: error.message
+            })
+        }
+    },
+    async tryAdminRecipients(req, res) {
+        const users = await User.findAll({
+            where: {
+                roleId: 1,
+                active: 1
+            },
+            attributes: ['id', 'email', 'roleId', 'active']
+        })
+
+        const recipients = users
+            .filter((user) => isValidEmail(user.email))
+            .map((user) => ({
+                id: user.id,
+                email: String(user.email).trim().toLowerCase(),
+                roleId: user.roleId
+            }))
+
+        res.status(200)
+        res.json({
+            success: true,
+            data: recipients
         })
     }
     

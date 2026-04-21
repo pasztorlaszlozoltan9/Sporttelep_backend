@@ -20,6 +20,37 @@ const toInteger = (value) => {
     return Number.isInteger(parsed) ? parsed : null
 }
 
+const isValidEmail = (value) => {
+    if (value === undefined || value === null) {
+        return false
+    }
+
+    const email = String(value).trim().toLowerCase()
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+}
+
+const normalizeEmail = (value) => {
+    return String(value).trim().toLowerCase()
+}
+
+const isStrictIsoDate = (value) => {
+    const text = String(value || '').trim()
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        return false
+    }
+
+    const [yearText, monthText, dayText] = text.split('-')
+    const year = Number(yearText)
+    const month = Number(monthText)
+    const day = Number(dayText)
+
+    const date = new Date(Date.UTC(year, month - 1, day))
+    return date.getUTCFullYear() === year &&
+        (date.getUTCMonth() + 1) === month &&
+        date.getUTCDate() === day
+}
+
 const parseTimeToMinutes = (timeValue) => {
     const text = String(timeValue || '').trim()
     const parts = text.split(':')
@@ -83,6 +114,10 @@ const resolveFieldDateAndTime = async (payload, existingBooking = null) => {
         throw buildHttpError(400, 'date is required.')
     }
 
+    if (!isStrictIsoDate(date)) {
+        throw buildHttpError(400, 'Invalid date. Use strict YYYY-MM-DD format.')
+    }
+
     if (!startTime) {
         throw buildHttpError(400, 'startTime is required.')
     }
@@ -110,7 +145,7 @@ const resolveFieldDateAndTime = async (payload, existingBooking = null) => {
 
     return {
         fieldId,
-        date,
+        date: String(date).trim(),
         startTime: normalizeTime(startTime),
         endTime: normalizeTime(endTime),
         startMinutes,
@@ -242,6 +277,144 @@ const resolveRecipientEmail = async (payload, booking) => {
     }
 
     return String(user.email).trim().toLowerCase()
+}
+
+const resolveAdminEmails = async () => {
+    const admins = await User.findAll({
+        where: {
+            roleId: 1,
+            active: 1
+        },
+        attributes: ['email']
+    })
+
+    const normalized = admins
+        .map((admin) => admin?.email)
+        .filter((email) => isValidEmail(email))
+        .map((email) => normalizeEmail(email))
+
+    return Array.from(new Set(normalized))
+}
+
+const resolveLocationEmailByLocationId = async (locationId) => {
+    if (!locationId) {
+        return null
+    }
+
+    const location = await Location.findByPk(locationId)
+    if (!location) {
+        return null
+    }
+
+    return isValidEmail(location.email) ? normalizeEmail(location.email) : null
+}
+
+const resolveNotificationRecipientsFromBooking = async (booking) => {
+    const locationEmail = await resolveLocationEmailByLocationId(booking?.locationId)
+    const adminEmails = await resolveAdminEmails()
+    const recipients = Array.from(new Set([
+        ...adminEmails,
+        ...(locationEmail ? [locationEmail] : [])
+    ]))
+
+    const warnings = []
+    if (!locationEmail) {
+        warnings.push('Location email is missing; admin notifications only.')
+    }
+
+    return {
+        bookingId: booking?.id || null,
+        locationEmail,
+        adminEmails,
+        recipients,
+        warnings
+    }
+}
+
+const sendAdminAndLocationBookingNotification = async ({ booking, action }) => {
+    const recipientResult = await resolveNotificationRecipientsFromBooking(booking)
+
+    if (!recipientResult.recipients.length) {
+        return recipientResult
+    }
+
+    const details = await collectBookingDetails(booking)
+    const subjectByAction = {
+        created: 'Budapest Sporttelepek értesítés - Foglalás létrehozva',
+        updated: 'Budapest Sporttelepek értesítés - Foglalás módosítva',
+        deleted: 'Budapest Sporttelepek értesítés - Foglalás törölve'
+    }
+
+    const actionLabelByAction = {
+        created: 'létrehozás',
+        updated: 'módosítás',
+        deleted: 'törlés'
+    }
+
+    await sendEmail({
+        email: recipientResult.recipients.join(','),
+        subject: subjectByAction[action] || 'Budapest Sporttelepek értesítés - Foglalás esemény',
+        html: `
+            <h2>Foglalás esemény</h2>
+            <p>Foglalás ${formatText(actionLabelByAction[action], 'esemény')} történt.</p>
+            <ul>
+                <li><strong>Foglalás azonosító:</strong> ${formatText(booking?.id)}</li>
+                <li><strong>Sport:</strong> ${formatText(details.sport)}</li>
+                <li><strong>Helyszín:</strong> ${formatText(details.location)}</li>
+                <li><strong>Helyszín email:</strong> ${formatText(recipientResult.locationEmail, 'Hiányzik')}</li>
+                <li><strong>Pálya:</strong> ${formatText(details.field)}</li>
+                <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
+                <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
+                <li><strong>Befejezés:</strong> ${formatText(details.endTime)}</li>
+                <li><strong>Időtartam:</strong> ${formatText(details.durationMinutes, '-')} perc</li>
+                <li><strong>60 perces alapár:</strong> ${formatText(details.basePricePerHour, '-')}</li>
+                <li><strong>Fizetendő:</strong> ${formatText(details.totalPrice, '-')}</li>
+            </ul>
+        `
+    })
+
+    return recipientResult
+}
+
+const resolveAndValidateBookingReferences = async (payload, existingBooking = null) => {
+    const userId = payload.userId ?? existingBooking?.userId ?? null
+    const locationId = payload.locationId ?? existingBooking?.locationId ?? null
+    const sportId = payload.sportId ?? existingBooking?.sportId ?? null
+    const fieldId = payload.fieldId ?? existingBooking?.fieldId ?? null
+
+    if (!userId || !locationId || !sportId || !fieldId) {
+        throw buildHttpError(400, 'userId, locationId, sportId and fieldId are required.')
+    }
+
+    const [user, location, sport, field] = await Promise.all([
+        User.findByPk(userId),
+        Location.findByPk(locationId),
+        Sport.findByPk(sportId),
+        Field.findByPk(fieldId)
+    ])
+
+    if (!user) {
+        throw buildHttpError(400, 'Invalid userId. Record not found.')
+    }
+
+    if (!location) {
+        throw buildHttpError(400, 'Invalid locationId. Record not found.')
+    }
+
+    if (!sport) {
+        throw buildHttpError(400, 'Invalid sportId. Record not found.')
+    }
+
+    if (!field) {
+        throw buildHttpError(400, 'Invalid fieldId. Record not found.')
+    }
+
+    return {
+        userId,
+        locationId,
+        sportId,
+        fieldId
+    }
 }
 
 const collectBookingDetails = async (booking) => {
@@ -402,6 +575,7 @@ const BookingController = {
         }
     },
     async tryStore(req, res) {
+        const resolvedReferences = await resolveAndValidateBookingReferences(req.body)
         const resolvedWindow = await resolveFieldDateAndTime(req.body)
         const selectedPrice = await resolveBasePrice(
             resolvedWindow.fieldId,
@@ -413,7 +587,10 @@ const BookingController = {
 
         const bookingPayload = {
             ...req.body,
-            fieldId: resolvedWindow.fieldId,
+            userId: resolvedReferences.userId,
+            locationId: resolvedReferences.locationId,
+            sportId: resolvedReferences.sportId,
+            fieldId: resolvedReferences.fieldId,
             date: resolvedWindow.date,
             startTime: resolvedWindow.startTime,
             endTime: resolvedWindow.endTime,
@@ -434,6 +611,23 @@ const BookingController = {
         } catch (error) {
             emailWarning = 'Booking created, but confirmation email could not be sent.'
             console.error('Email sending failed after booking creation:', error.message)
+        }
+
+        try {
+            const notificationResult = await sendAdminAndLocationBookingNotification({
+                booking,
+                action: 'created'
+            })
+
+            if (notificationResult.warnings.length) {
+                emailWarning = emailWarning
+                    ? `${emailWarning} ${notificationResult.warnings.join(' ')}`
+                    : notificationResult.warnings.join(' ')
+            }
+        } catch (error) {
+            const warningMessage = 'Booking created, but admin/location notification could not be sent.'
+            emailWarning = emailWarning ? `${emailWarning} ${warningMessage}` : warningMessage
+            console.error('Admin/location notification failed after booking creation:', error.message)
         }
 
         res.status(201)
@@ -471,6 +665,8 @@ const BookingController = {
             throw new Error('Fail! Record not found!')
         }
 
+        const resolvedReferences = await resolveAndValidateBookingReferences(req.body, existingBooking)
+
         const resolvedWindow = await resolveFieldDateAndTime(req.body, existingBooking)
         const selectedPrice = await resolveBasePrice(
             resolvedWindow.fieldId,
@@ -485,7 +681,10 @@ const BookingController = {
 
         const updatePayload = {
             ...req.body,
-            fieldId: resolvedWindow.fieldId,
+            userId: resolvedReferences.userId,
+            locationId: resolvedReferences.locationId,
+            sportId: resolvedReferences.sportId,
+            fieldId: resolvedReferences.fieldId,
             date: resolvedWindow.date,
             startTime: resolvedWindow.startTime,
             endTime: resolvedWindow.endTime,
@@ -510,6 +709,23 @@ const BookingController = {
         } catch (error) {
             emailWarning = 'Booking updated, but confirmation email could not be sent.'
             console.error('Email sending failed after booking update:', error.message)
+        }
+
+        try {
+            const notificationResult = await sendAdminAndLocationBookingNotification({
+                booking,
+                action: 'updated'
+            })
+
+            if (notificationResult.warnings.length) {
+                emailWarning = emailWarning
+                    ? `${emailWarning} ${notificationResult.warnings.join(' ')}`
+                    : notificationResult.warnings.join(' ')
+            }
+        } catch (error) {
+            const warningMessage = 'Booking updated, but admin/location notification could not be sent.'
+            emailWarning = emailWarning ? `${emailWarning} ${warningMessage}` : warningMessage
+            console.error('Admin/location notification failed after booking update:', error.message)
         }
 
         res.status(200)
@@ -550,6 +766,23 @@ const BookingController = {
                 emailWarning = 'Booking deleted, but confirmation email could not be sent.'
                 console.error('Email sending failed after booking delete:', error.message)
             }
+
+            try {
+                const notificationResult = await sendAdminAndLocationBookingNotification({
+                    booking: existingBooking,
+                    action: 'deleted'
+                })
+
+                if (notificationResult.warnings.length) {
+                    emailWarning = emailWarning
+                        ? `${emailWarning} ${notificationResult.warnings.join(' ')}`
+                        : notificationResult.warnings.join(' ')
+                }
+            } catch (error) {
+                const warningMessage = 'Booking deleted, but admin/location notification could not be sent.'
+                emailWarning = emailWarning ? `${emailWarning} ${warningMessage}` : warningMessage
+                console.error('Admin/location notification failed after booking delete:', error.message)
+            }
         }
 
         res.status(200)
@@ -557,6 +790,38 @@ const BookingController = {
             success: true,
             data: booking,
             emailWarning
+        })
+    },
+    async notificationRecipients(req, res) {
+        try {
+            await BookingController.tryNotificationRecipients(req, res)
+        } catch (error) {
+            res.status(error.statusCode || 500)
+            res.json({
+                success: false,
+                message: error.statusCode ? error.message : 'Error! The query is failed!',
+                error: error.message
+            })
+        }
+    },
+    async tryNotificationRecipients(req, res) {
+        const booking = await Booking.findByPk(req.params.id)
+        if (!booking) {
+            throw buildHttpError(404, 'Booking not found.')
+        }
+
+        const recipientData = await resolveNotificationRecipientsFromBooking(booking)
+
+        res.status(200)
+        res.json({
+            success: true,
+            data: {
+                bookingId: booking.id,
+                locationEmail: recipientData.locationEmail,
+                adminEmails: recipientData.adminEmails,
+                recipients: recipientData.recipients
+            },
+            emailWarning: recipientData.warnings.length ? recipientData.warnings.join(' ') : null
         })
     }
 }

@@ -1,5 +1,15 @@
 import Location from '../models/location.js'
 
+const isValidEmail = (value) => {
+    if (value === undefined || value === null) {
+        return false
+    }
+
+    const email = String(value).trim().toLowerCase()
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+}
+
 const LocationController = {
     async index(req, res) {
         try {
@@ -43,6 +53,12 @@ const LocationController = {
     },
     async store(req, res) {
         try {
+            if (!isValidEmail(req.body?.email)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Error! Invalid location email format!'
+                })
+            }
             await LocationController.tryStore(req, res)
         }catch(error) {
             res.status(500)
@@ -63,6 +79,12 @@ const LocationController = {
     },
     async update(req, res) {
         try {
+            if (req.body?.email !== undefined && !isValidEmail(req.body.email)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Error! Invalid location email format!'
+                })
+            }
             await LocationController.tryUpdate(req, res)
         }catch(error) {
             let actualMessage = '';

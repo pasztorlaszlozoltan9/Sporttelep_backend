@@ -53,9 +53,12 @@ All endpoint have a /api prefix.
 |-|-|-|-|
 | /register | POST  | no |  create user |
 | /login    | POST  | no |  login  |
+| /contact  | POST  | no | send contact message to admin recipients |
 | /users    | GET   | yes |  read users |
+| /users/admin-recipients | GET | yes | read active admin email recipients |
 | /users/:id | GET  | yes | read user |
 | /users/:id/password | PUT  | yes | change password |
+| /bookings/:id/notification-recipients | GET | yes | resolve admin + location recipients |
 
 ## The register endpoint
 
@@ -82,6 +85,61 @@ You receive the bearear token with accessToken key.
 ## The users endpoint
 
 To query users or user, send the bearer token to endpoint.
+
+## Notification recipient endpoints
+
+### POST /contact
+
+Request body:
+
+```json
+{
+  "email": "sender@example.com",
+  "message": "Hello admin team"
+}
+```
+
+Sends the contact message to all active admins (roleId = 1) that have valid email addresses.
+
+### GET /users/admin-recipients
+
+Returns active admin users (roleId = 1) with valid emails only.
+
+Example response:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "email": "admin1@example.com",
+      "roleId": 1
+    }
+  ]
+}
+```
+
+### GET /bookings/:id/notification-recipients
+
+Returns deduplicated recipients for booking notifications. Recipients contain all valid admin emails and the location email when available.
+
+Example response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "bookingId": 555,
+    "locationEmail": "location10@example.com",
+    "adminEmails": ["admin1@example.com", "admin2@example.com"],
+    "recipients": ["location10@example.com", "admin1@example.com", "admin2@example.com"]
+  },
+  "emailWarning": null
+}
+```
+
+If location email is missing, booking actions still succeed and the warning is returned in `emailWarning`.
 
 ## Model and controller generation
 

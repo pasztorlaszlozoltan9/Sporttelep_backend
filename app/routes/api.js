@@ -14,6 +14,7 @@ import BookingController from '../controllers/bookingController.js';
 import TesztController from '../controllers/tesztController.js';
 import PricesController from '../controllers/pricesController.js';
 import FieldBookingWindowController from '../controllers/fieldBookingWindowController.js';
+import ContactController from '../controllers/contactController.js';
  
 router.post('/register', AuthController.register)
 router.get('/verify-email/:token', AuthController.verifyEmail)
@@ -21,9 +22,11 @@ router.post('/forgot-password', AuthController.forgotPassword)
 router.post('/reset-password/:token', AuthController.resetPassword)
 router.post('/login', AuthController.login)
 router.post('/google-signin', AuthController.googleSignIn)
+router.post('/contact', ContactController.send)
 router.post('/uploads/image', [verifyToken], isAdmin, singleImageUpload('image'), UploadController.image)
 router.get('/uploads/images', [verifyToken], isAdmin, UploadController.images)
 router.get('/users', [verifyToken], UserController.index)
+router.get('/users/admin-recipients', [verifyToken], UserController.adminRecipients)
 router.get('/users/:id', [verifyToken], UserController.show)
 router.put('/users/:id', [verifyToken], UserController.update)
 router.put('/users/:id/password', [verifyToken], UserController.updatePassword)
@@ -48,6 +51,7 @@ router.put('/fields/:id', [verifyToken], isAdmin, FieldController.update);
 router.delete('/fields/:id', [verifyToken], isAdmin, FieldController.destroy);
 
 router.get('/bookings', BookingController.index);
+router.get('/bookings/:id/notification-recipients', [verifyToken], BookingController.notificationRecipients);
 router.get('/bookings/:id', BookingController.show);
 router.post('/bookings', [verifyToken], BookingController.store);
 router.put('/bookings/:id', [verifyToken], BookingController.update);
