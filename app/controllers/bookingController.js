@@ -244,9 +244,69 @@ const formatText = (value, fallback = 'N/A') => {
     return text.length > 0 ? text : fallback
 }
 
+const normalizeOptionalText = (value) => {
+    if (value === undefined || value === null) {
+        return null
+    }
+
+    const text = String(value).trim()
+    return text.length ? text : null
+}
+
+const resolveContactFromPayload = (payload = {}) => {
+    const payloadEmail = normalizeOptionalText(payload.email) || normalizeOptionalText(payload.userEmail)
+    const email = isValidEmail(payloadEmail) ? normalizeEmail(payloadEmail) : null
+
+    const fullname =
+        normalizeOptionalText(payload.fullname) ||
+        normalizeOptionalText(payload.userFullname) ||
+        normalizeOptionalText(payload.fullName) ||
+        normalizeOptionalText(payload.userFullName)
+
+    const phone = normalizeOptionalText(payload.phone) || normalizeOptionalText(payload.userPhone)
+
+    return {
+        email,
+        fullname,
+        phone
+    }
+}
+
+const resolveBookingNote = ({ payload = {}, booking = null }) => {
+    return (
+        normalizeOptionalText(payload.note) ||
+        normalizeOptionalText(payload.bookingNote) ||
+        normalizeOptionalText(booking?.note)
+    )
+}
+
+const resolveBookingContact = async ({ payload = {}, booking }) => {
+    const fromPayload = resolveContactFromPayload(payload)
+    const missingEmail = !fromPayload.email
+    const missingFullname = !fromPayload.fullname
+    const missingPhone = !fromPayload.phone
+
+    if (!booking?.userId || (!missingEmail && !missingFullname && !missingPhone)) {
+        return fromPayload
+    }
+
+    const user = await User.findByPk(booking.userId, {
+        attributes: ['email', 'fullname', 'phone']
+    })
+
+    const resolvedEmail = fromPayload.email || (isValidEmail(user?.email) ? normalizeEmail(user.email) : null)
+
+    return {
+        email: resolvedEmail,
+        fullname: fromPayload.fullname || normalizeOptionalText(user?.fullname),
+        phone: fromPayload.phone || normalizeOptionalText(user?.phone)
+    }
+}
+
 const getRecipientEmail = async (payload) => {
-    if (payload?.email) {
-        return String(payload.email).trim().toLowerCase()
+    const payloadContact = resolveContactFromPayload(payload)
+    if (payloadContact.email) {
+        return payloadContact.email
     }
 
     if (!payload?.userId) {
@@ -331,7 +391,7 @@ const resolveNotificationRecipientsFromBooking = async (booking) => {
     }
 }
 
-const sendAdminAndLocationBookingNotification = async ({ booking, action }) => {
+const sendAdminAndLocationBookingNotification = async ({ booking, action, payload = {} }) => {
     const recipientResult = await resolveNotificationRecipientsFromBooking(booking)
 
     if (!recipientResult.recipients.length) {
@@ -339,6 +399,8 @@ const sendAdminAndLocationBookingNotification = async ({ booking, action }) => {
     }
 
     const details = await collectBookingDetails(booking)
+    const contact = await resolveBookingContact({ payload, booking })
+    const bookingNote = resolveBookingNote({ payload, booking })
     const subjectByAction = {
         created: 'Budapest Sporttelepek értesítés - Foglalás létrehozva',
         updated: 'Budapest Sporttelepek értesítés - Foglalás módosítva',
@@ -366,6 +428,10 @@ const sendAdminAndLocationBookingNotification = async ({ booking, action }) => {
                 <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
                 <li><strong>Befejezés:</strong> ${formatText(details.endTime)}</li>
+                <li><strong>Foglaló neve:</strong> ${formatText(contact.fullname, 'N/A')}</li>
+                <li><strong>Foglaló email:</strong> ${formatText(contact.email, 'N/A')}</li>
+                <li><strong>Foglaló telefonszám:</strong> ${formatText(contact.phone, 'N/A')}</li>
+                <li><strong>Megjegyzés:</strong> ${formatText(bookingNote, 'N/A')}</li>
                 <li><strong>Időtartam:</strong> ${formatText(details.durationMinutes, '-')} perc</li>
                 <li><strong>60 perces alapár:</strong> ${formatText(details.basePricePerHour, '-')}</li>
                 <li><strong>Fizetendő:</strong> ${formatText(details.totalPrice, '-')}</li>
@@ -443,8 +509,9 @@ const collectBookingDetails = async (booking) => {
     }
 }
 
-const sendBookingConfirmation = async (booking, recipientEmail) => {
+const sendBookingConfirmation = async (booking, recipientEmail, payload = {}) => {
     const details = await collectBookingDetails(booking)
+    const bookingNote = resolveBookingNote({ payload, booking })
 
     await sendEmail({
         email: recipientEmail,
@@ -460,6 +527,7 @@ const sendBookingConfirmation = async (booking, recipientEmail) => {
                 <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
                 <li><strong>Befejezés:</strong> ${formatText(details.endTime)}</li>
+                <li><strong>Megjegyzés:</strong> ${formatText(bookingNote, 'N/A')}</li>
                 <li><strong>Időtartam:</strong> ${formatText(details.durationMinutes, '-')} perc</li>
                 <li><strong>60 perces alapár:</strong> ${formatText(details.basePricePerHour, '-')}</li>
                 <li><strong>Fizetendő:</strong> ${formatText(details.totalPrice, '-')}</li>
@@ -469,8 +537,9 @@ const sendBookingConfirmation = async (booking, recipientEmail) => {
     })
 }
 
-const sendBookingUpdateConfirmation = async (booking, recipientEmail) => {
+const sendBookingUpdateConfirmation = async (booking, recipientEmail, payload = {}) => {
     const details = await collectBookingDetails(booking)
+    const bookingNote = resolveBookingNote({ payload, booking })
 
     await sendEmail({
         email: recipientEmail,
@@ -486,6 +555,7 @@ const sendBookingUpdateConfirmation = async (booking, recipientEmail) => {
                 <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
                 <li><strong>Befejezés:</strong> ${formatText(details.endTime)}</li>
+                <li><strong>Megjegyzés:</strong> ${formatText(bookingNote, 'N/A')}</li>
                 <li><strong>Időtartam:</strong> ${formatText(details.durationMinutes, '-')} perc</li>
                 <li><strong>60 perces alapár:</strong> ${formatText(details.basePricePerHour, '-')}</li>
                 <li><strong>Fizetendő:</strong> ${formatText(details.totalPrice, '-')}</li>
@@ -495,8 +565,9 @@ const sendBookingUpdateConfirmation = async (booking, recipientEmail) => {
     })
 }
 
-const sendBookingDeleteConfirmation = async (booking, recipientEmail) => {
+const sendBookingDeleteConfirmation = async (booking, recipientEmail, payload = {}) => {
     const details = await collectBookingDetails(booking)
+    const bookingNote = resolveBookingNote({ payload, booking })
 
     await sendEmail({
         email: recipientEmail,
@@ -512,6 +583,7 @@ const sendBookingDeleteConfirmation = async (booking, recipientEmail) => {
                 <li><strong>Dátum:</strong> ${formatText(details.date)}</li>
                 <li><strong>Kezdés:</strong> ${formatText(details.startTime)}</li>
                 <li><strong>Befejezés:</strong> ${formatText(details.endTime)}</li>
+                <li><strong>Megjegyzés:</strong> ${formatText(bookingNote, 'N/A')}</li>
                 <li><strong>Időtartam:</strong> ${formatText(details.durationMinutes, '-')} perc</li>
                 <li><strong>60 perces alapár:</strong> ${formatText(details.basePricePerHour, '-')}</li>
                 <li><strong>Fizetendő:</strong> ${formatText(details.totalPrice, '-')}</li>
@@ -604,7 +676,7 @@ const BookingController = {
         try {
             const recipientEmail = await getRecipientEmail(req.body)
             if (recipientEmail) {
-                await sendBookingConfirmation(booking, recipientEmail)
+                await sendBookingConfirmation(booking, recipientEmail, req.body)
             } else {
                 emailWarning = 'Booking created, but no recipient email was provided.'
             }
@@ -616,7 +688,8 @@ const BookingController = {
         try {
             const notificationResult = await sendAdminAndLocationBookingNotification({
                 booking,
-                action: 'created'
+                action: 'created',
+                payload: req.body
             })
 
             if (notificationResult.warnings.length) {
@@ -702,7 +775,7 @@ const BookingController = {
         try {
             const recipientEmail = await resolveRecipientEmail(req.body, booking)
             if (recipientEmail) {
-                await sendBookingUpdateConfirmation(booking, recipientEmail)
+                await sendBookingUpdateConfirmation(booking, recipientEmail, req.body)
             } else {
                 emailWarning = 'Booking updated, but no recipient email was provided.'
             }
@@ -714,7 +787,8 @@ const BookingController = {
         try {
             const notificationResult = await sendAdminAndLocationBookingNotification({
                 booking,
-                action: 'updated'
+                action: 'updated',
+                payload: req.body
             })
 
             if (notificationResult.warnings.length) {
@@ -758,7 +832,7 @@ const BookingController = {
             try {
                 const recipientEmail = await resolveRecipientEmail(req.body, existingBooking)
                 if (recipientEmail) {
-                    await sendBookingDeleteConfirmation(existingBooking, recipientEmail)
+                    await sendBookingDeleteConfirmation(existingBooking, recipientEmail, req.body)
                 } else {
                     emailWarning = 'Booking deleted, but no recipient email was provided.'
                 }
@@ -770,7 +844,8 @@ const BookingController = {
             try {
                 const notificationResult = await sendAdminAndLocationBookingNotification({
                     booking: existingBooking,
-                    action: 'deleted'
+                    action: 'deleted',
+                    payload: req.body
                 })
 
                 if (notificationResult.warnings.length) {
