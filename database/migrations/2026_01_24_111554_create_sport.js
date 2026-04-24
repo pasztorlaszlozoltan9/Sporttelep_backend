@@ -1,4 +1,4 @@
-import { DataTypes, NUMBER } from 'sequelize';
+import { DataTypes } from 'sequelize';
 
 async function up({context: QueryInterface}) {
   await QueryInterface.createTable('sports', {
@@ -10,6 +10,10 @@ async function up({context: QueryInterface}) {
     },
     name: {
       type: DataTypes.STRING
+    },
+    imageUrl: {
+      type: DataTypes.TEXT,
+      allowNull: true
     },
     createdAt: { type: DataTypes.DATE },
     updatedAt: { type: DataTypes.DATE }    

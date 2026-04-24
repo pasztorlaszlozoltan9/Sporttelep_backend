@@ -44,15 +44,6 @@ async function up({context: QueryInterface}) {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
-    availableDateId:{
-      type: DataTypes.INTEGER,
-      references: {
-        model: 'availableDates',
-        key: 'id'
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL'
-    },
     priceId:{
       type: DataTypes.INTEGER,
       references: {
@@ -63,10 +54,21 @@ async function up({context: QueryInterface}) {
       onDelete: 'SET NULL'
     },
     date: {
-      type: DataTypes.DATEONLY
+      type: DataTypes.DATEONLY,
+      allowNull: false
     },
     startTime: {
-      type: DataTypes.TIME
+      type: DataTypes.TIME,
+      allowNull: false
+    },
+    endTime: {
+      type: DataTypes.TIME,
+      allowNull: false
+    },
+    totalPrice: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0
     },
     createdAt: { type: DataTypes.DATE },
     updatedAt: { type: DataTypes.DATE }    

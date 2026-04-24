@@ -10,7 +10,8 @@ async function up({context: QueryInterface}) {
     },
     email: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: false,
+      unique: true
     },
     password: {
       type: DataTypes.STRING,
@@ -27,6 +28,31 @@ async function up({context: QueryInterface}) {
     roleId: {
       type: DataTypes.INTEGER,
       defaultValue: 0
+    },
+    verificationToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null
+    },
+    verified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    passwordResetToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: null
+    },
+    passwordResetExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null
+    },
+    active: {
+      type: DataTypes.TINYINT,
+      allowNull: false,
+      defaultValue: 1
     },
     createdAt: { type: DataTypes.DATE },
     updatedAt: { type: DataTypes.DATE }    

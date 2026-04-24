@@ -17,6 +17,10 @@ async function up({context: QueryInterface}) {
     email: {
       type: DataTypes.STRING
     },
+    imageUrl: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     createdAt: { type: DataTypes.DATE },
     updatedAt: { type: DataTypes.DATE }    
   });
